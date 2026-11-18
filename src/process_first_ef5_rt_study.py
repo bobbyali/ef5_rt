@@ -1,19 +1,22 @@
 """
-Consolidated processing pipeline for the First EF5 Radiation Therapy (RT) Study (Dec 2010 - Jan 2011).
+Consolidated processing pipeline for the First EF5 Radiation Therapy (RT) Study (Nov 2010 - Jan 2011).
 
 Processes the 6 A549 subcutaneous tumour mice (c2_M0, c2_M1L, c2_M1R, c2_M1L1R, c2_M2R, c1_M2R)
-across all 3 EF5 PET/CT imaging timepoints:
-  - Day -1  (2010-12-02, pre-RT, 20 Gy delivered on 2010-12-03)
-  - Day +13 (2010-12-15, post-RT)
-  - Day +32 (2011-01-03, post-RT)
+across all 4 EF5 PET/CT imaging timepoints:
+  - Day -15 (2010-11-18, early growth baseline, 20 days post-inoculation; c2_M0, c2_M1L, c2_M1R, c2_M1L1R)
+  - Day -1  (2010-12-02, pre-RT, 20 Gy delivered on 2010-12-03; all 6 mice)
+  - Day +13 (2010-12-15, post-RT; 5 surviving mice)
+  - Day +32 (2011-01-03, post-RT; 4 surviving mice)
 
 Outputs:
-  1. Per-mouse, per-timepoint cropped PET DICOM, canonical axis-aligned CT DICOM (when registered CT exists),
+  1. Per-mouse, per-timepoint cropped PET DICOM, canonical axis-aligned CT DICOM (when registered CT covers tumours),
      per-mouse binary RT_Image `rois.ROI`, and visual QC overview PNGs under:
        outputs/first_ef5_rt_study/cropped_mice/<mouse_id>/<timepoint>/
-  2. Longitudinal montage PNG per mouse under:
+  2. Simulator-ready compressed NumPy `.npz` voxel bundles under:
+       outputs/first_ef5_rt_study/voxel_bundles/<mouse_id>/<mouse_id>_<timepoint>.npz
+  3. Longitudinal montage PNG per mouse under:
        outputs/first_ef5_rt_study/montages/<mouse_id>_longitudinal.png
-  3. Curated, publication-ready summary CSV tables (saved to both outputs/first_ef5_rt_study/tables/
+  4. Curated, publication-ready summary CSV tables (saved to both outputs/first_ef5_rt_study/tables/
      and git-tracked results/first_ef5_rt_study/):
        - mouse_id_mapping.csv
        - longitudinal_imaging_summary.csv
@@ -70,6 +73,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "ear_punch": "0",
         "roi_id_2010": "m1",
         "caliper_key": ("A549 c2", "O"),
+        "day_minus15_set": "2010-11-18 Early Growth BR (1) (PET+CT)",
         "day_minus1_set": "2010-12-02 Set 1 (PET+CT)",
         "day13_set": "2010-12-15 Set 3 (PET+CT)",
         "day32_set": "None (died before 2011-01-03)",
@@ -78,7 +82,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "control_side_2010_caliper": "RHS (image-right, smaller X)",
         "control_side_2013_roi": "LHS Control (anatomical left)",
         "survival_status": "Died between 2010-12-30 and 2011-01-03",
-        "notes": "Imaged pre-RT (Day -1) and Day +13; last caliper 2010-12-30.",
+        "notes": "Imaged Day -15 (18 Nov, both tumours), Day -1, and Day +13; last caliper 2010-12-30.",
     },
     {
         "mouse_id": "c2_M1L",
@@ -86,6 +90,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "ear_punch": "1L",
         "roi_id_2010": "m2",
         "caliper_key": ("A549 c2", "1L"),
+        "day_minus15_set": "2010-11-18 Early Growth TL (2) (PET only, Ctrl contoured)",
         "day_minus1_set": "2010-12-02 Set 1 (PET+CT)",
         "day13_set": "2010-12-15 Set 2 (PET+CT)",
         "day32_set": "2011-01-03 Set 8 (PET only)",
@@ -94,7 +99,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "control_side_2010_caliper": "RHS (image-right, smaller X)",
         "control_side_2013_roi": "LHS Control (anatomical left)",
         "survival_status": "Survived to study endpoint (sacrificed 2011-01-12)",
-        "notes": "Complete 3-timepoint PET series; Day +32 Set 8 has no registered CT in RT_Image.",
+        "notes": "4-timepoint PET series (Day -15 Ctrl only; TL tumours outside 18 Nov CT FOV; Day +32 Set 8 PET-only).",
     },
     {
         "mouse_id": "c2_M1R",
@@ -102,6 +107,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "ear_punch": "1R",
         "roi_id_2010": "m3",
         "caliper_key": ("A549 c2", "1R"),
+        "day_minus15_set": "2010-11-18 Early Growth TR (3) (PET only, RT contoured)",
         "day_minus1_set": "2010-12-02 Set 1 (PET+CT)",
         "day13_set": "2010-12-15 Set 2 (PET+CT)",
         "day32_set": "2011-01-03 Set 9 (PET+CT)",
@@ -110,7 +116,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "control_side_2010_caliper": "RHS (image-right, smaller X)",
         "control_side_2013_roi": "LHS Control (anatomical left)",
         "survival_status": "Survived to study endpoint (sacrificed 2011-01-12)",
-        "notes": "Complete 3-timepoint PET+CT series. Note: Growth Curves A549 Analysis sheet had Post-RT 1R LHS/RHS PET values swapped (fixed here from ROIs).",
+        "notes": "4-timepoint PET series (Day -15 RT only; TR tumours outside 18 Nov CT FOV; Dec-Jan all PET+CT). Growth Curves Post-RT 1R swap fixed.",
     },
     {
         "mouse_id": "c2_M1L1R",
@@ -118,6 +124,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "ear_punch": "1L1R",
         "roi_id_2010": "m4",
         "caliper_key": ("A549 c2", "1L1R"),
+        "day_minus15_set": "2010-11-18 Early Growth BL (4) (PET+CT, partial RT CT)",
         "day_minus1_set": "2010-12-02 Set 1 (PET+CT)",
         "day13_set": "2010-12-15 Set 3 (PET+CT)",
         "day32_set": "2011-01-03 Set 8 (PET only)",
@@ -126,7 +133,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "control_side_2010_caliper": "RHS (image-right, smaller X)",
         "control_side_2013_roi": "LHS Control (anatomical left)",
         "survival_status": "Survived to study endpoint (sacrificed 2011-01-12)",
-        "notes": "Complete 3-timepoint PET series; Day +32 Set 8 has no registered CT. Note: 2011 EF5 RT data sheet divided m4 LHS by m3 muscle (1.786 instead of true 1.627; fixed here).",
+        "notes": "4-timepoint PET series (both tumours contoured at all 4 timepoints; Day -15 RT partially at CT edge; Day +32 PET-only). Pre-RT m4 T/M formula bug fixed.",
     },
     {
         "mouse_id": "c2_M2R",
@@ -134,6 +141,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "ear_punch": "2R",
         "roi_id_2010": "m5",
         "caliper_key": ("A549 c2", "2R"),
+        "day_minus15_set": "None (not imaged on 2010-11-18)",
         "day_minus1_set": "2010-12-02 Set 2 (PET only)",
         "day13_set": "2010-12-15 Set 3 (PET+CT)",
         "day32_set": "2011-01-03 Set 9 (PET+CT)",
@@ -142,7 +150,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "control_side_2010_caliper": "RHS (image-right, smaller X)",
         "control_side_2013_roi": "LHS Control (anatomical left)",
         "survival_status": "Survived to study endpoint (sacrificed 2011-01-12)",
-        "notes": "Complete 3-timepoint PET series; Day -1 Set 2 has no registered CT in RT_Image.",
+        "notes": "Complete 3-timepoint Dec-Jan PET series; not included in 18 Nov 4-mouse bed; Day -1 Set 2 PET-only.",
     },
     {
         "mouse_id": "c1_M2R",
@@ -150,6 +158,7 @@ MOUSE_REGISTRY: List[Dict[str, str]] = [
         "ear_punch": "2R",
         "roi_id_2010": "m6",
         "caliper_key": ("A549 c1", "2R"),
+        "day_minus15_set": "None (not imaged on 2010-11-18)",
         "day_minus1_set": "2010-12-02 Set 2 (PET only)",
         "day13_set": "None (died 2010-12-12)",
         "day32_set": "None (died 2010-12-12)",
@@ -174,12 +183,52 @@ class MouseScanSpec:
     session_rel_dir: str
     scan_set_label: str
     body_roi: str
-    rt_roi: str
-    ctrl_roi: str
+    rt_roi: Optional[str]
+    ctrl_roi: Optional[str]
     muscle_roi: str
+    pet_filename: str = "image1.dcm"
+    ct_filename: Optional[str] = "image2.dcm"
+    roi_filename: str = "rois.ROI"
+    use_ct: bool = True
+    ct_note: str = ""
 
 
 SCAN_SPECS: List[MouseScanSpec] = [
+    # --- Day -15 (2010-11-18, Early Growth Baseline, 20 days post-inoculation) ---
+    # Uses calibrated p105421_v2.img.dcm (%ID/g matching stats1.txt; a549_reg_norm0001.dcm was mis-scaled by 1/1290.5).
+    # 2010 ROI naming: LHS (larger X) = future RT_20Gy (2013 RHS RT); RHS (smaller X) = future Control_0Gy (2013 LHS Control).
+    # CT covers bottom row (BR, BL) only; top row (TL, TR) shoulders at z=[-39.4,-29.2] extend outside CT z_max=-36.1 mm.
+    MouseScanSpec(
+        "c2_M0", "day-15_2010-11-18", "2010-11-18", -15,
+        "2010-11-18_day-15_early_growth", "18 Nov Early Growth",
+        "Mouse BR ROI (1)", "BR Mouse LHS Tumor", "BR Mouse RHS Tumor", "BR Mouse BG ROI",
+        pet_filename="p105421_v2.img.dcm", ct_filename="a549_reg_norm0002.dcm",
+        roi_filename="a549_tumors.roi.ROI", use_ct=True,
+    ),
+    MouseScanSpec(
+        "c2_M1L", "day-15_2010-11-18", "2010-11-18", -15,
+        "2010-11-18_day-15_early_growth", "18 Nov Early Growth",
+        "Mouse TL ROI (2)", None, "TL Mouse RHS Tumor", "TL Mouse BG ROI",
+        pet_filename="p105421_v2.img.dcm", ct_filename="a549_reg_norm0002.dcm",
+        roi_filename="a549_tumors.roi.ROI", use_ct=False,
+        ct_note="CT excluded: TL tumour (z=[-39.4,-30.7]mm) lies outside CT FOV (z_max=-36.1mm); RT tumour not contoured on 18 Nov.",
+    ),
+    MouseScanSpec(
+        "c2_M1R", "day-15_2010-11-18", "2010-11-18", -15,
+        "2010-11-18_day-15_early_growth", "18 Nov Early Growth",
+        "Mouse TR ROI (3)", "TR Mouse LHS Tumor", None, "TR Mouse BG ROI",
+        pet_filename="p105421_v2.img.dcm", ct_filename="a549_reg_norm0002.dcm",
+        roi_filename="a549_tumors.roi.ROI", use_ct=False,
+        ct_note="CT excluded: TR tumour (z=[-37.2,-29.2]mm) lies outside CT FOV (z_max=-36.1mm); Control tumour not contoured on 18 Nov.",
+    ),
+    MouseScanSpec(
+        "c2_M1L1R", "day-15_2010-11-18", "2010-11-18", -15,
+        "2010-11-18_day-15_early_growth", "18 Nov Early Growth",
+        "Mouse BL ROI (4)", "BL Mouse LHS Tumor", "BL Mouse RHS Tumor", "BL Mouse BG ROI",
+        pet_filename="p105421_v2.img.dcm", ct_filename="a549_reg_norm0002.dcm",
+        roi_filename="a549_tumors.roi.ROI", use_ct=True,
+        ct_note="BL LHS (RT) tumour (x=[-32.7,-25.8]mm) sits at CT x_max=-26.3mm edge (~31% CT volume coverage); BL RHS (Ctrl) has 100% CT coverage.",
+    ),
     # --- Day -1 (2010-12-02, Pre-RT) ---
     MouseScanSpec("c2_M0",    "day-1_2010-12-02", "2010-12-02", -1, "2010-12-02_day-1_pre_rt/set1", "02 Dec Set 1", "M0",     "M0 RHS RT",     "M0 LHS Control",     "M0 muscle"),
     MouseScanSpec("c2_M1L",   "day-1_2010-12-02", "2010-12-02", -1, "2010-12-02_day-1_pre_rt/set1", "02 Dec Set 1", "M1L",    "M1L RHS RT",    "M1L LHS Control",    "M1L muscle"),
@@ -332,19 +381,23 @@ def extract_calipers_and_timeline(xlsx_path: Path) -> Tuple[pd.DataFrame, pd.Dat
 PET_OVERLAY_CMAP = make_pet_overlay_cmap("inferno", max_alpha=0.78)
 
 
-def _configure_mouse_roi_styles(rt_name: str, ctrl_name: str, muscle_name: str) -> None:
-    ROI_STYLES[rt_name] = {
-        "color": "#FF4081",
-        "linestyle": "-",
-        "linewidth": 2.2,
-        "label": f"{rt_name} (Irradiated 20 Gy)",
-    }
-    ROI_STYLES[ctrl_name] = {
-        "color": "#00E5FF",
-        "linestyle": "-",
-        "linewidth": 2.2,
-        "label": f"{ctrl_name} (Control 0 Gy)",
-    }
+def _configure_mouse_roi_styles(
+    rt_name: Optional[str], ctrl_name: Optional[str], muscle_name: str
+) -> None:
+    if rt_name is not None:
+        ROI_STYLES[rt_name] = {
+            "color": "#FF4081",
+            "linestyle": "-",
+            "linewidth": 2.2,
+            "label": f"{rt_name} (Irradiated 20 Gy)",
+        }
+    if ctrl_name is not None:
+        ROI_STYLES[ctrl_name] = {
+            "color": "#00E5FF",
+            "linestyle": "-",
+            "linewidth": 2.2,
+            "label": f"{ctrl_name} (Control 0 Gy)",
+        }
     ROI_STYLES[muscle_name] = {
         "color": "#FFD740",
         "linestyle": ":",
@@ -361,12 +414,28 @@ def _ct_display_clim(ct_vol: RTImageVolume) -> Tuple[float, float]:
     return (-500.0, 800.0)
 
 
+def _pet_display_clim(spec: MouseScanSpec) -> Tuple[float, float]:
+    """Selects PET display window (%ID/g): lower range on Day -15 early-growth scan."""
+    return (0.0, 1.2) if spec.days_post_rt <= -10 else (0.0, 2.8)
+
+
+def _tumour_slice_coords(rt_roi: Optional[RTRoi], ctrl_roi: Optional[RTRoi], muscle_roi: RTRoi) -> Tuple[float, float]:
+    tumours = [r for r in (rt_roi, ctrl_roi) if r is not None]
+    if not tumours:
+        tumours = [muscle_roi]
+    y_mid = float(np.mean([r.centroid_mm[1] for r in tumours]))
+    z_mid = float(np.mean([r.centroid_mm[2] for r in tumours]))
+    return y_mid, z_mid
+
+
 def render_mouse_qc_overview(
     out_path: Path,
     spec: MouseScanSpec,
     pet_vol: RTImageVolume,
     ct_vol: Optional[RTImageVolume],
-    sub_rois: List[RTRoi],
+    rt_roi: Optional[RTRoi],
+    ctrl_roi: Optional[RTRoi],
+    muscle_roi: RTRoi,
     tm_rt: float,
     tm_ctrl: float,
 ) -> None:
@@ -375,22 +444,24 @@ def render_mouse_qc_overview(
       Row 1: Mid-tumour Transaxial slice (CT | PET | Overlay, or PET alone if PET-only)
       Row 2: Mid-tumour Coronal slice (CT | PET | Overlay, or PET alone if PET-only)
     """
-    rt_roi, ctrl_roi, muscle_roi = sub_rois[0], sub_rois[1], sub_rois[2]
-    _configure_mouse_roi_styles(rt_roi.name, ctrl_roi.name, muscle_roi.name)
+    sub_rois = [r for r in (rt_roi, ctrl_roi, muscle_roi) if r is not None]
+    _configure_mouse_roi_styles(
+        rt_roi.name if rt_roi is not None else None,
+        ctrl_roi.name if ctrl_roi is not None else None,
+        muscle_roi.name,
+    )
 
     ref_vol = ct_vol if ct_vol is not None else pet_vol
     roi_masks = {r.name: build_roi_3d_mask(ref_vol, r) for r in sub_rois}
 
-    # Mid-tumour transaxial Y and coronal Z coordinates (average of the two tumour centroids)
-    y_mid = 0.5 * (float(rt_roi.centroid_mm[1]) + float(ctrl_roi.centroid_mm[1]))
-    z_mid = 0.5 * (float(rt_roi.centroid_mm[2]) + float(ctrl_roi.centroid_mm[2]))
+    y_mid, z_mid = _tumour_slice_coords(rt_roi, ctrl_roi, muscle_roi)
 
     # Coronal Y zoom around tumours + muscle
     all_pts = np.vstack([r.all_vertices for r in sub_rois])
     y_lo = max(float(ref_vol.y_coords.min()), float(all_pts[:, 1].min()) - 8.0)
     y_hi = min(float(ref_vol.y_coords.max()), float(all_pts[:, 1].max()) + 8.0)
 
-    pet_clim = (0.0, 2.8)
+    pet_clim = _pet_display_clim(spec)
     has_ct = ct_vol is not None
     ct_clim = _ct_display_clim(ct_vol) if ct_vol is not None else (0.0, 2200.0)
 
@@ -403,7 +474,7 @@ def render_mouse_qc_overview(
             pet_2d, pet_ext, pet_i, _ = get_slice_2d_and_extent(pet_vol, plane, coord)
             col_titles = [
                 f"{plane.capitalize()} CT (slice {ct_i})",
-                f"{plane.capitalize()} EF5 PET (slice {pet_i})",
+                f"{plane.capitalize()} EF5 PET (slice {pet_i}, 0-{pet_clim[1]:g} %ID/g)",
                 f"{plane.capitalize()} PET/CT Overlay",
             ]
             for c_idx in range(3):
@@ -434,30 +505,33 @@ def render_mouse_qc_overview(
             plot_rois_on_ax(ax, plane, coord, sub_rois, pet_vol, roi_masks)
             ax.set_xlim(pet_ext[0], pet_ext[1])
             ax.set_ylim(ylim[0], ylim[1]) if ylim is not None else ax.set_ylim(pet_ext[2], pet_ext[3])
-            ax.set_title(f"{plane.capitalize()} EF5 PET (slice {pet_i}, PET-only)", color="white", fontsize=10.5, fontweight="bold")
+            ax.set_title(f"{plane.capitalize()} EF5 PET (slice {pet_i}, PET-only, 0-{pet_clim[1]:g} %ID/g)", color="white", fontsize=10, fontweight="bold")
             ax.tick_params(colors="white", labelsize=8)
             for sp in ax.spines.values():
                 sp.set_edgecolor("#555555")
 
     m_info = MOUSE_BY_ID[spec.mouse_id]
+    tm_rt_str = f"{tm_rt:.2f}" if not np.isnan(tm_rt) else "N/A"
+    tm_ctrl_str = f"{tm_ctrl:.2f}" if not np.isnan(tm_ctrl) else "N/A"
     fig.suptitle(
         f"{spec.mouse_id} ({m_info['roi_id_2010']}, {m_info['cage']} ear '{m_info['ear_punch']}') — "
         f"Day {spec.days_post_rt:+d} ({spec.scan_date}, {spec.scan_set_label})\n"
-        f"T/M Mean: RT (20 Gy) = {tm_rt:.2f}  |  Control (0 Gy) = {tm_ctrl:.2f}",
+        f"T/M Mean: RT (20 Gy) = {tm_rt_str}  |  Control (0 Gy) = {tm_ctrl_str}",
         color="white",
         fontsize=12.5,
         fontweight="bold",
     )
-    handles = [
-        Line2D([0], [0], color="#FF4081", linestyle="-", linewidth=2.2, label=f"RT 20 Gy ({rt_roi.name})"),
-        Line2D([0], [0], color="#00E5FF", linestyle="-", linewidth=2.2, label=f"Control 0 Gy ({ctrl_roi.name})"),
-        Line2D([0], [0], color="#FFD740", linestyle=":", linewidth=2.2, label=f"Muscle ({muscle_roi.name})"),
-    ]
+    handles = []
+    if rt_roi is not None:
+        handles.append(Line2D([0], [0], color="#FF4081", linestyle="-", linewidth=2.2, label=f"RT 20 Gy ({rt_roi.name})"))
+    if ctrl_roi is not None:
+        handles.append(Line2D([0], [0], color="#00E5FF", linestyle="-", linewidth=2.2, label=f"Control 0 Gy ({ctrl_roi.name})"))
+    handles.append(Line2D([0], [0], color="#FFD740", linestyle=":", linewidth=2.2, label=f"Muscle ({muscle_roi.name})"))
     fig.legend(
         handles=handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.015),
-        ncol=3,
+        ncol=len(handles),
         frameon=True,
         facecolor="#1E1E1E",
         edgecolor="#555555",
@@ -472,25 +546,30 @@ def render_mouse_qc_overview(
 def render_longitudinal_montage(
     out_path: Path,
     mouse_id: str,
-    entries: List[Tuple[MouseScanSpec, RTImageVolume, Optional[RTImageVolume], List[RTRoi], float, float]],
+    entries: List[Tuple[MouseScanSpec, RTImageVolume, Optional[RTImageVolume], Optional[RTRoi], Optional[RTRoi], RTRoi, float, float]],
 ) -> None:
     """Renders a 1xN longitudinal coronal EF5 PET(/CT) montage across available timepoints for one mouse."""
     n = len(entries)
-    fig, axes = plt.subplots(1, n, figsize=(5.2 * n, 5.6), dpi=120, facecolor="#111111")
+    fig, axes = plt.subplots(1, n, figsize=(5.0 * n, 5.7), dpi=120, facecolor="#111111")
     if n == 1:
         axes = [axes]
-    fig.subplots_adjust(left=0.06, right=0.96, bottom=0.16, top=0.80, wspace=0.18)
+    fig.subplots_adjust(left=0.05, right=0.97, bottom=0.16, top=0.79, wspace=0.18)
 
-    for ax, (spec, pet_vol, ct_vol, sub_rois, tm_rt, tm_ctrl) in zip(axes, entries):
-        rt_roi, ctrl_roi, muscle_roi = sub_rois[0], sub_rois[1], sub_rois[2]
-        _configure_mouse_roi_styles(rt_roi.name, ctrl_roi.name, muscle_roi.name)
+    for ax, (spec, pet_vol, ct_vol, rt_roi, ctrl_roi, muscle_roi, tm_rt, tm_ctrl) in zip(axes, entries):
+        sub_rois = [r for r in (rt_roi, ctrl_roi, muscle_roi) if r is not None]
+        _configure_mouse_roi_styles(
+            rt_roi.name if rt_roi is not None else None,
+            ctrl_roi.name if ctrl_roi is not None else None,
+            muscle_roi.name,
+        )
         ref_vol = ct_vol if ct_vol is not None else pet_vol
         roi_masks = {r.name: build_roi_3d_mask(ref_vol, r) for r in sub_rois}
 
-        z_mid = 0.5 * (float(rt_roi.centroid_mm[2]) + float(ctrl_roi.centroid_mm[2]))
+        _, z_mid = _tumour_slice_coords(rt_roi, ctrl_roi, muscle_roi)
         all_pts = np.vstack([r.all_vertices for r in sub_rois])
         y_lo = max(float(ref_vol.y_coords.min()), float(all_pts[:, 1].min()) - 8.0)
         y_hi = min(float(ref_vol.y_coords.max()), float(all_pts[:, 1].max()) + 8.0)
+        pet_clim = _pet_display_clim(spec)
 
         ax.set_facecolor("black")
         pet_2d, pet_ext, _, _ = get_slice_2d_and_extent(pet_vol, "coronal", z_mid)
@@ -498,20 +577,24 @@ def render_longitudinal_montage(
             ct_clim = _ct_display_clim(ct_vol)
             ct_2d, ct_ext, _, _ = get_slice_2d_and_extent(ct_vol, "coronal", z_mid)
             ax.imshow(ct_2d, cmap="gray", vmin=ct_clim[0], vmax=ct_clim[1], extent=ct_ext, origin="upper", interpolation="bilinear", aspect="equal")
-            ax.imshow(pet_2d, cmap=PET_OVERLAY_CMAP, vmin=0.0, vmax=2.8, extent=pet_ext, origin="upper", interpolation="bilinear", aspect="equal")
+            ax.imshow(pet_2d, cmap=PET_OVERLAY_CMAP, vmin=pet_clim[0], vmax=pet_clim[1], extent=pet_ext, origin="upper", interpolation="bilinear", aspect="equal")
             ax.set_xlim(ct_ext[0], ct_ext[1])
             mod_tag = "PET/CT"
         else:
-            ax.imshow(pet_2d, cmap="inferno", vmin=0.0, vmax=2.8, extent=pet_ext, origin="upper", interpolation="nearest", aspect="equal")
+            ax.imshow(pet_2d, cmap="inferno", vmin=pet_clim[0], vmax=pet_clim[1], extent=pet_ext, origin="upper", interpolation="nearest", aspect="equal")
             ax.set_xlim(pet_ext[0], pet_ext[1])
             mod_tag = "PET only"
 
         plot_rois_on_ax(ax, "coronal", z_mid, sub_rois, ref_vol, roi_masks)
         ax.set_ylim(y_lo, y_hi)
+        tm_rt_str = f"{tm_rt:.2f}" if not np.isnan(tm_rt) else "N/A"
+        tm_ctrl_str = f"{tm_ctrl:.2f}" if not np.isnan(tm_ctrl) else "N/A"
         ax.set_title(
-            f"Day {spec.days_post_rt:+d} ({spec.scan_date})\n{mod_tag} | T/M: RT={tm_rt:.2f}, Ctrl={tm_ctrl:.2f}",
+            f"Day {spec.days_post_rt:+d} ({spec.scan_date})\n"
+            f"{mod_tag} [0-{pet_clim[1]:g} %ID/g]\n"
+            f"T/M: RT={tm_rt_str}, Ctrl={tm_ctrl_str}",
             color="white",
-            fontsize=10,
+            fontsize=9.5,
             fontweight="bold",
         )
         ax.tick_params(colors="white", labelsize=8)
@@ -595,8 +678,8 @@ def save_voxel_bundle_npz(
     spec: MouseScanSpec,
     pet_crop: RTImageVolume,
     ct_crop: Optional[RTImageVolume],
-    rt_roi: RTRoi,
-    ctrl_roi: RTRoi,
+    rt_roi: Optional[RTRoi],
+    ctrl_roi: Optional[RTRoi],
     muscle_roi: RTRoi,
     muscle_mean_idg: float,
     muscle_std_idg: float,
@@ -607,14 +690,17 @@ def save_voxel_bundle_npz(
     both native-resolution canonical CT and CT resampled onto the PET voxel grid.
     """
     m_info = MOUSE_BY_ID[spec.mouse_id]
+    scan_dt = datetime.date.fromisoformat(spec.scan_date)
+    days_post_inj = (scan_dt - INJECTION_DATE).days
+
     pet_idg = np.asarray(pet_crop.data, dtype=np.float32)
     pet_tm = (
         (pet_idg / np.float32(muscle_mean_idg)).astype(np.float32)
         if muscle_mean_idg and muscle_mean_idg > 0
         else np.full_like(pet_idg, np.nan, dtype=np.float32)
     )
-    mask_rt_pet = build_roi_3d_mask(pet_crop, rt_roi)
-    mask_ctrl_pet = build_roi_3d_mask(pet_crop, ctrl_roi)
+    mask_rt_pet = build_roi_3d_mask(pet_crop, rt_roi) if rt_roi is not None else np.zeros(pet_crop.shape, dtype=bool)
+    mask_ctrl_pet = build_roi_3d_mask(pet_crop, ctrl_roi) if ctrl_roi is not None else np.zeros(pet_crop.shape, dtype=bool)
     mask_muscle_pet = build_roi_3d_mask(pet_crop, muscle_roi)
 
     payload: Dict[str, object] = {
@@ -623,10 +709,13 @@ def save_voxel_bundle_npz(
         "cage": np.array(m_info["cage"]),
         "ear_punch": np.array(m_info["ear_punch"]),
         "scan_date": np.array(spec.scan_date),
+        "days_post_injection": np.int32(days_post_inj),
         "days_post_rt": np.int32(spec.days_post_rt),
         "scan_set": np.array(spec.scan_set_label),
-        "rt_roi_label": np.array(rt_roi.name),
-        "ctrl_roi_label": np.array(ctrl_roi.name),
+        "has_rt_roi": np.bool_(rt_roi is not None),
+        "has_ctrl_roi": np.bool_(ctrl_roi is not None),
+        "rt_roi_label": np.array(rt_roi.name if rt_roi is not None else ""),
+        "ctrl_roi_label": np.array(ctrl_roi.name if ctrl_roi is not None else ""),
         "muscle_roi_label": np.array(muscle_roi.name),
         "muscle_mean_idg": np.float32(muscle_mean_idg),
         "muscle_std_idg": np.float32(muscle_std_idg),
@@ -644,6 +733,7 @@ def save_voxel_bundle_npz(
         "pet_y_mm": pet_crop.y_coords.astype(np.float64),
         "pet_z_mm": pet_crop.z_coords.astype(np.float64),
         "ct_available": np.bool_(ct_crop is not None),
+        "ct_note": np.array(spec.ct_note),
     }
 
     if ct_crop is not None:
@@ -673,8 +763,8 @@ def save_voxel_bundle_npz(
             {
                 "ct_on_pet_grid": ct_on_pet,
                 "ct_hu": ct_hu,
-                "mask_rt_ct": build_roi_3d_mask(ct_crop, rt_roi),
-                "mask_ctrl_ct": build_roi_3d_mask(ct_crop, ctrl_roi),
+                "mask_rt_ct": build_roi_3d_mask(ct_crop, rt_roi) if rt_roi is not None else np.zeros(ct_crop.shape, dtype=bool),
+                "mask_ctrl_ct": build_roi_3d_mask(ct_crop, ctrl_roi) if ctrl_roi is not None else np.zeros(ct_crop.shape, dtype=bool),
                 "mask_muscle_ct": build_roi_3d_mask(ct_crop, muscle_roi),
                 "ct_spacing_mm": np.array(ct_crop.spacing, dtype=np.float64),
                 "ct_origin_mm": np.array(ct_crop.origin, dtype=np.float64),
@@ -721,22 +811,26 @@ def main() -> None:
             return ("", None, None)
         return (str(row["date"]), int(row["days_post_rt"]), float(row["diameter_mm"]))
 
-    # 2. Load each consolidated full-bed session once (avoid reloading 262 MB CTs multiple times)
-    print("\n2. Processing all 15 mouse-timepoint scans (cropping PET/CT, ROIs, stats, QC images)...")
-    specs_by_session: Dict[str, List[MouseScanSpec]] = {}
+    # 2. Load each consolidated full-bed session once (avoid reloading large CTs multiple times)
+    print(f"\n2. Processing all {len(SCAN_SPECS)} mouse-timepoint scans (cropping PET/CT, ROIs, stats, QC images, .npz bundles)...")
+    specs_by_session: Dict[Tuple[str, str, Optional[str], str], List[MouseScanSpec]] = {}
     for sp in SCAN_SPECS:
-        specs_by_session.setdefault(sp.session_rel_dir, []).append(sp)
+        key = (sp.session_rel_dir, sp.pet_filename, sp.ct_filename, sp.roi_filename)
+        specs_by_session.setdefault(key, []).append(sp)
 
     imaging_rows: List[Dict[str, object]] = []
-    montage_cache: Dict[str, List[Tuple[MouseScanSpec, RTImageVolume, Optional[RTImageVolume], List[RTRoi], float, float]]] = {}
+    montage_cache: Dict[
+        str,
+        List[Tuple[MouseScanSpec, RTImageVolume, Optional[RTImageVolume], Optional[RTRoi], Optional[RTRoi], RTRoi, float, float]],
+    ] = {}
 
-    for sess_rel, sess_specs in specs_by_session.items():
+    for (sess_rel, pet_fn, ct_fn, roi_fn), sess_specs in specs_by_session.items():
         sdir = cons_dir / sess_rel
-        print(f"\n   Loading session: {sess_rel} ({len(sess_specs)} study mice)")
-        pet_full = load_rt_image_dicom(sdir / "image1.dcm")
-        ct_path = sdir / "image2.dcm"
-        ct_full = load_rt_image_dicom(ct_path) if ct_path.exists() else None
-        roi_ver, rois_all = load_rt_image_roi(sdir / "rois.ROI")
+        print(f"\n   Loading session: {sess_rel} [{pet_fn}] ({len(sess_specs)} study mice)")
+        pet_full = load_rt_image_dicom(sdir / pet_fn)
+        ct_path = (sdir / ct_fn) if ct_fn is not None else None
+        ct_full = load_rt_image_dicom(ct_path) if (ct_path is not None and ct_path.exists()) else None
+        roi_ver, rois_all = load_rt_image_roi(sdir / roi_fn)
         roi_map = {r.name: r for r in rois_all}
 
         if ct_full is not None:
@@ -746,11 +840,14 @@ def main() -> None:
 
         for sp in sess_specs:
             m_info = MOUSE_BY_ID[sp.mouse_id]
+            scan_dt = datetime.date.fromisoformat(sp.scan_date)
+            days_post_inj = (scan_dt - INJECTION_DATE).days
+
             body_roi = roi_map[sp.body_roi]
-            rt_roi = roi_map[sp.rt_roi]
-            ctrl_roi = roi_map[sp.ctrl_roi]
+            rt_roi = roi_map[sp.rt_roi] if sp.rt_roi is not None else None
+            ctrl_roi = roi_map[sp.ctrl_roi] if sp.ctrl_roi is not None else None
             muscle_roi = roi_map[sp.muscle_roi]
-            sub_rois = [rt_roi, ctrl_roi, muscle_roi]
+            sub_rois = [r for r in (rt_roi, ctrl_roi, muscle_roi) if r is not None]
             quad = _quadrant(body_roi, pet_full)
 
             # Crop PET & CT to union of mouse body box + all tumour/muscle ROIs (+ 2 mm pad so no tumour clips)
@@ -759,7 +856,7 @@ def main() -> None:
                 crop_volume_to_body_roi(
                     ct_full, body_roi, ref_pet_vol=pet_crop, extra_rois=sub_rois, pad_mm=2.0
                 )
-                if ct_full is not None
+                if (ct_full is not None and sp.use_ct)
                 else None
             )
 
@@ -777,18 +874,18 @@ def main() -> None:
             pet_musc = _vol_stats(pet_crop, muscle_roi)
             ct_musc = _vol_stats(ct_crop, muscle_roi) if ct_crop is not None else None
 
-            pet_rt = _vol_stats(pet_crop, rt_roi)
-            pet_ctrl = _vol_stats(pet_crop, ctrl_roi)
-            ct_rt = _vol_stats(ct_crop, rt_roi) if ct_crop is not None else None
-            ct_ctrl = _vol_stats(ct_crop, ctrl_roi) if ct_crop is not None else None
+            pet_rt = _vol_stats(pet_crop, rt_roi) if rt_roi is not None else None
+            pet_ctrl = _vol_stats(pet_crop, ctrl_roi) if ctrl_roi is not None else None
+            ct_rt = _vol_stats(ct_crop, rt_roi) if (ct_crop is not None and rt_roi is not None) else None
+            ct_ctrl = _vol_stats(ct_crop, ctrl_roi) if (ct_crop is not None and ctrl_roi is not None) else None
 
             musc_mean = pet_musc["mean"]
-            tm_rt = round(pet_rt["mean"] / musc_mean, 4) if musc_mean and musc_mean > 0 else np.nan
-            tm_ctrl = round(pet_ctrl["mean"] / musc_mean, 4) if musc_mean and musc_mean > 0 else np.nan
+            tm_rt = round(pet_rt["mean"] / musc_mean, 4) if (pet_rt is not None and musc_mean and musc_mean > 0) else np.nan
+            tm_ctrl = round(pet_ctrl["mean"] / musc_mean, 4) if (pet_ctrl is not None and musc_mean and musc_mean > 0) else np.nan
 
             # Render QC overview PNG
             qc_out = mdir / f"{sp.mouse_id}_{sp.timepoint_slug}_qc.png"
-            render_mouse_qc_overview(qc_out, sp, pet_crop, ct_crop, sub_rois, tm_rt, tm_ctrl)
+            render_mouse_qc_overview(qc_out, sp, pet_crop, ct_crop, rt_roi, ctrl_roi, muscle_roi, tm_rt, tm_ctrl)
 
             # Export simulator-ready compressed NumPy .npz voxel bundle
             npz_out = save_voxel_bundle_npz(
@@ -803,13 +900,15 @@ def main() -> None:
                 muscle_std_idg=float(pet_musc["std"]),
             )
             montage_cache.setdefault(sp.mouse_id, []).append(
-                (sp, pet_crop, ct_crop, sub_rois, tm_rt, tm_ctrl)
+                (sp, pet_crop, ct_crop, rt_roi, ctrl_roi, muscle_roi, tm_rt, tm_ctrl)
             )
 
             for treatment, roi_obj, p_st, c_st, tm_val in [
                 ("RT_20Gy", rt_roi, pet_rt, ct_rt, tm_rt),
                 ("Control_0Gy", ctrl_roi, pet_ctrl, ct_ctrl, tm_ctrl),
             ]:
+                if roi_obj is None or p_st is None:
+                    continue
                 cal_date, cal_day, cal_mm = nearest_caliper(sp.mouse_id, treatment, sp.days_post_rt)
                 imaging_rows.append(
                     {
@@ -823,6 +922,7 @@ def main() -> None:
                         "caliper_side_2010": "LHS" if treatment == "RT_20Gy" else "RHS",
                         "roi_label_2013": roi_obj.name,
                         "scan_date": sp.scan_date,
+                        "days_post_injection": days_post_inj,
                         "days_post_rt": sp.days_post_rt,
                         "scan_set": sp.scan_set_label,
                         "bed_quadrant": quad,
@@ -849,6 +949,7 @@ def main() -> None:
                         "ct_mean_hu": c_st["mean"] if c_st is not None else np.nan,
                         "ct_std_hu": c_st["std"] if c_st is not None else np.nan,
                         "ct_muscle_mean_hu": ct_musc["mean"] if ct_musc is not None else np.nan,
+                        "ct_note": sp.ct_note,
                         "nearest_caliper_date": cal_date,
                         "nearest_caliper_days_post_rt": cal_day if cal_day is not None else np.nan,
                         "nearest_caliper_mm": cal_mm if cal_mm is not None else np.nan,
@@ -859,11 +960,11 @@ def main() -> None:
                         "qc_image_path": qc_out.relative_to(root).as_posix(),
                     }
                 )
+            rt_msg = f"{pet_rt['volume_cm3']:.3f}cc (T/M {tm_rt:.2f})" if pet_rt is not None else "not contoured"
+            ctrl_msg = f"{pet_ctrl['volume_cm3']:.3f}cc (T/M {tm_ctrl:.2f})" if pet_ctrl is not None else "not contoured"
             print(
-                f"     -> {sp.mouse_id:8s} ({sp.timepoint_slug}, {quad:12s}): "
-                f"RT={pet_rt['volume_cm3']:.3f}cc (T/M {tm_rt:.2f}), "
-                f"Ctrl={pet_ctrl['volume_cm3']:.3f}cc (T/M {tm_ctrl:.2f}), "
-                f"CT={'yes' if ct_crop is not None else 'no'}"
+                f"     -> {sp.mouse_id:8s} ({sp.timepoint_slug:16s}, {quad:12s}): "
+                f"RT={rt_msg}, Ctrl={ctrl_msg}, CT={'yes' if ct_crop is not None else 'no'}"
             )
 
     # 3. Render longitudinal montage per mouse
@@ -912,7 +1013,7 @@ def main() -> None:
                 "roi_side_2013": "RHS RT" if treatment == "RT_20Gy" else "LHS Control",
                 "survival_status": m["survival_status"],
             }
-            for day, tag in [(-1, "d_minus1"), (13, "d13"), (32, "d32")]:
+            for day, tag in [(-15, "d_minus15"), (-1, "d_minus1"), (13, "d13"), (32, "d32")]:
                 sub = imaging_df[(imaging_df["tumour_id"] == tid) & (imaging_df["days_post_rt"] == day)]
                 if not sub.empty:
                     s = sub.iloc[0]
@@ -956,13 +1057,13 @@ def main() -> None:
     for fname, df in table_map.items():
         print(f"   - {fname:35s} ({len(df):3d} rows x {len(df.columns):2d} cols)")
 
-    print("\n=== Tumour Master Wide Preview (EF5 T/M & Volumes) ===")
+    print("\n=== Tumour Master Wide Preview (EF5 T/M & Volumes, Day -15 to Day +32) ===")
     preview_cols = [
         "tumour_id", "treatment",
+        "d_minus15_pet_vol_cm3", "d_minus15_tm_mean",
         "d_minus1_pet_vol_cm3", "d_minus1_tm_mean",
         "d13_pet_vol_cm3", "d13_tm_mean",
         "d32_pet_vol_cm3", "d32_tm_mean",
-        "caliper_dm1_mm", "caliper_dp11_mm", "caliper_dp27_mm", "caliper_dp39_mm",
     ]
     print(wide_df[preview_cols].to_string(index=False))
     print(f"\nDone! Cropped binaries in {cropped_root}; curated tables in {git_results}")
@@ -970,27 +1071,41 @@ def main() -> None:
 
 
 def verify_voxel_bundles(root: Path = Path("/workspace")) -> None:
-    """Verifies all 15 exported .npz voxel bundles against longitudinal_imaging_summary.csv."""
+    """Verifies all exported .npz voxel bundles against longitudinal_imaging_summary.csv."""
     df = pd.read_csv(root / "results/first_ef5_rt_study/longitudinal_imaging_summary.csv")
     bundles = sorted((root / "outputs/first_ef5_rt_study/voxel_bundles").rglob("*.npz"))
-    assert len(bundles) == 15, f"Expected 15 bundles, found {len(bundles)}"
+    expected = len(SCAN_SPECS)
+    assert len(bundles) == expected, f"Expected {expected} bundles, found {len(bundles)}"
     print(f"\n=== Verifying {len(bundles)} .npz Voxel Bundles ===")
     for b in bundles:
         d = np.load(b)
         mid = str(d["mouse_id"])
         day = int(d["days_post_rt"])
-        rt_mean = float(d["pet_idg"][d["mask_rt_pet"]].mean())
-        rt_tm = float(d["pet_tm"][d["mask_rt_pet"]].mean())
-        row = df[(df["mouse_id"] == mid) & (df["days_post_rt"] == day) & (df["treatment"] == "RT_20Gy")].iloc[0]
-        assert abs(rt_mean - row["pet_mean_idg"]) < 1e-3, f"PET mean mismatch: {mid} {day}"
-        assert abs(rt_tm - row["tm_mean"]) < 1e-3, f"T/M mismatch: {mid} {day}"
+        has_rt = bool(d["has_rt_roi"])
+        has_ctrl = bool(d["has_ctrl_roi"])
+        summary_parts = []
+        for flag, trt, mkey, lbl in [
+            (has_rt, "RT_20Gy", "mask_rt_pet", "RT"),
+            (has_ctrl, "Control_0Gy", "mask_ctrl_pet", "Ctrl"),
+        ]:
+            if flag:
+                m = d[mkey]
+                mean_idg = float(d["pet_idg"][m].mean())
+                mean_tm = float(d["pet_tm"][m].mean())
+                row = df[(df["mouse_id"] == mid) & (df["days_post_rt"] == day) & (df["treatment"] == trt)].iloc[0]
+                assert abs(mean_idg - row["pet_mean_idg"]) < 1e-3, f"PET mean mismatch: {mid} {day} {trt}"
+                assert abs(mean_tm - row["tm_mean"]) < 1e-3, f"T/M mismatch: {mid} {day} {trt}"
+                summary_parts.append(f"{lbl}={mean_idg:.4f}(T/M {mean_tm:.2f})")
+            else:
+                assert not d[mkey].any(), f"Unexpected non-empty mask when {lbl} absent: {mid} {day}"
         ct_info = "PET-only"
         if bool(d["ct_available"]):
             assert d["ct_on_pet_grid"].shape == d["pet_idg"].shape
-            ct_m = float(d["ct_on_pet_grid"][d["mask_rt_pet"]].mean())
-            ct_info = f"CT={d['ct_hu'].shape}, ct_on_pet_rt_mean={ct_m:.1f} HU"
-        print(f"  OK {b.name:38s} | PET={d['pet_idg'].shape} | RT={rt_mean:.4f} (T/M {rt_tm:.3f}) | {ct_info}")
-    print("ALL 15 VOXEL BUNDLES VERIFIED!")
+            ref_mask = d["mask_rt_pet"] if has_rt else d["mask_ctrl_pet"]
+            ct_m = float(d["ct_on_pet_grid"][ref_mask].mean())
+            ct_info = f"CT={d['ct_hu'].shape}, ct_on_pet_mean={ct_m:.1f} HU"
+        print(f"  OK {b.name:38s} | PET={d['pet_idg'].shape} | {' | '.join(summary_parts)} | {ct_info}")
+    print(f"ALL {len(bundles)} VOXEL BUNDLES VERIFIED!")
 
 
 if __name__ == "__main__":
