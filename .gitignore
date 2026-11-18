@@ -11,6 +11,8 @@ outputs/
 *.sav
 *.npz
 *.npy
+*.nii
+*.nii.gz
 *.roi
 *.ROI
 

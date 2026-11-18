@@ -98,3 +98,18 @@ if d["ct_available"]:
     rt_voxels_ct = d["ct_on_pet_grid"][d["mask_rt_pet"]]
 ```
 
+---
+
+## 5. Publication-Ready NIfTI Outputs (`.nii.gz`)
+
+All 19 mouse-timepoint scans are also exported as compressed NIfTI-1 volumes (`.nii.gz`) under `outputs/first_ef5_rt_study/nifti/<mouse_id>/<timepoint>/` (linked via the `nifti_dir` column in `longitudinal_imaging_summary.csv`), accompanied by `outputs/first_ef5_rt_study/nifti/label_legend.json` and per-scan `*_metadata.json` sidecars (~424 MB total):
+
+- **Coordinate system**: Standard positive-diagonal **NIfTI RAS+** (`nibabel.aff2axcodes == ('R', 'A', 'S')`), converted from DICOM LPS via `diag(-1, -1, 1, 1)` so PET, native CT, `CT_on_pet`, and ROI label maps auto-overlay in **3D Slicer**, **ITK-SNAP**, **FSLeyes**, and Python (`nibabel` / `SimpleITK`) with `≤ 0.11 mm` PET–CT physical centroid agreement.
+- **Files per scan**:
+  - `*_PET_idg.nii.gz` (`float32`, `%ID/g`)
+  - `*_PET_tm.nii.gz` (`float32`, muscle-normalized `T/M`)
+  - `*_seg_pet.nii.gz` (`uint8` multi-label mask: `1 = RT_20Gy`, `2 = Control_0Gy`, `3 = Muscle_BG`)
+  - *(for the 13 scans with CT)* `*_CT.nii.gz` (`float32`, native resolution), `*_CT_on_pet.nii.gz` (`float32`, resampled onto PET grid), and `*_seg_ct.nii.gz` (`uint8`, native CT grid)
+  - `*_metadata.json` (BIDS-style sidecar with mouse ID, scan timing, units, muscle background stats, and audit notes)
+- Regenerate NIfTIs alone from existing `.npz` bundles via `python -m src.process_first_ef5_rt_study --nifti-only`.
+

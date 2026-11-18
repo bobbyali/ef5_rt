@@ -27,7 +27,9 @@ Outputs:
 
 from __future__ import annotations
 
+import argparse
 import datetime
+import json
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,6 +39,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+import nibabel as nib
 import numpy as np
 import pandas as pd
 from scipy.ndimage import affine_transform
@@ -957,6 +960,7 @@ def main() -> None:
                         "cropped_ct_path": ct_out.relative_to(root).as_posix() if ct_out is not None else "",
                         "cropped_roi_path": roi_out.relative_to(root).as_posix(),
                         "voxel_bundle_path": npz_out.relative_to(root).as_posix(),
+                        "nifti_dir": f"outputs/first_ef5_rt_study/nifti/{sp.mouse_id}/{sp.timepoint_slug}",
                         "qc_image_path": qc_out.relative_to(root).as_posix(),
                     }
                 )
@@ -1068,6 +1072,259 @@ def main() -> None:
     print(wide_df[preview_cols].to_string(index=False))
     print(f"\nDone! Cropped binaries in {cropped_root}; curated tables in {git_results}")
     verify_voxel_bundles(root)
+    export_nifti_dataset(root)
+    verify_nifti_outputs(root)
+
+
+def _canonical_array_to_nifti_ras(
+    arr_yzx: np.ndarray,
+    spacing_dz_dy_dx: np.ndarray,
+    origin_lps: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Converts a canonical RT_Image array of shape (nz, ny, nx) = (Y, Z, X) in DICOM LPS
+    into a standard positive-diagonal NIfTI RAS+ volume of shape (nx, nz, ny) = (X, Y, Z)
+    with a 4x4 RAS+ affine matrix (nibabel.aff2axcodes == ('R', 'A', 'S')).
+    """
+    nz, ny, nx = arr_yzx.shape
+    dz, dy, dx = [float(v) for v in spacing_dz_dy_dx]
+    ox, oy, oz = [float(v) for v in origin_lps]
+
+    # (Y, Z, X) -> (X, Y, Z), then flip Z so increasing index maps to increasing +Z_ras
+    arr_ras = np.ascontiguousarray(np.transpose(arr_yzx, (2, 0, 1))[:, :, ::-1])
+
+    affine_ras = np.array(
+        [
+            [dx, 0.0, 0.0, -ox],
+            [0.0, dz, 0.0, -oy],
+            [0.0, 0.0, dy, oz - (ny - 1) * dy],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=np.float64,
+    )
+    return arr_ras, affine_ras
+
+
+def _save_nifti(arr_ras: np.ndarray, affine_ras: np.ndarray, out_path: Path, descrip: str = "") -> Path:
+    img = nib.Nifti1Image(arr_ras, affine_ras)
+    img.set_qform(affine_ras, code=1)
+    img.set_sform(affine_ras, code=1)
+    if descrip:
+        img.header["descrip"] = descrip.encode("ascii", "ignore")[:79]
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    nib.save(img, str(out_path))
+    return out_path
+
+
+def _combine_label_map(mask_rt: np.ndarray, mask_ctrl: np.ndarray, mask_muscle: np.ndarray) -> np.ndarray:
+    """Combines binary masks into a single uint8 label map: 1=RT_20Gy, 2=Control_0Gy, 3=Muscle_BG."""
+    seg = np.zeros(mask_muscle.shape, dtype=np.uint8)
+    seg[mask_muscle] = 3
+    seg[mask_ctrl] = 2
+    seg[mask_rt] = 1
+    return seg
+
+
+def export_nifti_dataset(root: Path = Path("/workspace")) -> None:
+    """
+    Exports all 19 verified .npz voxel bundles to compressed NIfTI (.nii.gz) volumes
+    under outputs/first_ef5_rt_study/nifti/<mouse_id>/<timepoint>/ with standard RAS+ affines
+    and BIDS-style JSON sidecar metadata.
+    """
+    voxel_root = root / "outputs" / "first_ef5_rt_study" / "voxel_bundles"
+    nifti_root = root / "outputs" / "first_ef5_rt_study" / "nifti"
+    nifti_root.mkdir(parents=True, exist_ok=True)
+
+    bundles = sorted(voxel_root.rglob("*.npz"))
+    assert len(bundles) == len(SCAN_SPECS), f"Expected {len(SCAN_SPECS)} .npz bundles, found {len(bundles)}"
+
+    legend = {
+        "dataset": "First EF5 RT Study (A549 Subcutaneous Tumours, Nov 2010 - Jan 2011)",
+        "coordinate_system": "NIfTI RAS+ (converted from DICOM LPS via diag(-1, -1, 1, 1)); nibabel axcodes = ('R', 'A', 'S')",
+        "segmentation_labels": {
+            "0": "Background",
+            "1": "RT_20Gy (irradiated tumour; 2010 LHS / 2013 RHS RT)",
+            "2": "Control_0Gy (contralateral unirradiated tumour; 2010 RHS / 2013 LHS Control)",
+            "3": "Muscle_BG (background muscle reference ROI)",
+        },
+        "files_per_scan": {
+            "*_PET_idg.nii.gz": "3D [18F]-EF5 PET uptake in %ID/g (float32)",
+            "*_PET_tm.nii.gz": "3D muscle-normalized [18F]-EF5 T/M ratio map (float32)",
+            "*_seg_pet.nii.gz": "Multi-label ROI mask on PET grid (uint8)",
+            "*_CT.nii.gz": "Native-resolution canonical microCT (float32, when CT available)",
+            "*_CT_on_pet.nii.gz": "Canonical microCT resampled onto PET grid (float32, when CT available)",
+            "*_seg_ct.nii.gz": "Multi-label ROI mask on native CT grid (uint8, when CT available)",
+            "*_metadata.json": "Per-scan sidecar metadata (mouse ID, timing, units, ROI stats/notes)",
+        },
+    }
+    (nifti_root / "label_legend.json").write_text(json.dumps(legend, indent=2) + "\n", encoding="utf-8")
+
+    print(f"\n=== Exporting {len(bundles)} Scans to NIfTI (.nii.gz) in {nifti_root} ===")
+    for b in bundles:
+        d = np.load(b)
+        mid = str(d["mouse_id"])
+        stem = b.stem  # <mouse_id>_<timepoint_slug>
+        tp_slug = stem[len(mid) + 1 :]
+        out_dir = nifti_root / mid / tp_slug
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        pet_spacing = d["pet_spacing_mm"]
+        pet_origin = d["pet_origin_mm"]
+
+        pet_idg_ras, pet_aff = _canonical_array_to_nifti_ras(d["pet_idg"].astype(np.float32), pet_spacing, pet_origin)
+        pet_tm_ras, _ = _canonical_array_to_nifti_ras(d["pet_tm"].astype(np.float32), pet_spacing, pet_origin)
+        seg_pet_yzx = _combine_label_map(d["mask_rt_pet"], d["mask_ctrl_pet"], d["mask_muscle_pet"])
+        seg_pet_ras, _ = _canonical_array_to_nifti_ras(seg_pet_yzx, pet_spacing, pet_origin)
+
+        files_written: Dict[str, str] = {}
+        files_written["pet_idg"] = _save_nifti(
+            pet_idg_ras, pet_aff, out_dir / f"{stem}_PET_idg.nii.gz", "EF5 PET (%ID/g)"
+        ).name
+        files_written["pet_tm"] = _save_nifti(
+            pet_tm_ras, pet_aff, out_dir / f"{stem}_PET_tm.nii.gz", "EF5 PET (T/M ratio)"
+        ).name
+        files_written["seg_pet"] = _save_nifti(
+            seg_pet_ras, pet_aff, out_dir / f"{stem}_seg_pet.nii.gz", "ROIs: 1=RT_20Gy, 2=Ctrl_0Gy, 3=Muscle"
+        ).name
+
+        ct_avail = bool(d["ct_available"])
+        if ct_avail:
+            ct_spacing = d["ct_spacing_mm"]
+            ct_origin = d["ct_origin_mm"]
+            ct_ras, ct_aff = _canonical_array_to_nifti_ras(d["ct_hu"].astype(np.float32), ct_spacing, ct_origin)
+            seg_ct_yzx = _combine_label_map(d["mask_rt_ct"], d["mask_ctrl_ct"], d["mask_muscle_ct"])
+            seg_ct_ras, _ = _canonical_array_to_nifti_ras(seg_ct_yzx, ct_spacing, ct_origin)
+            ct_on_pet_ras, _ = _canonical_array_to_nifti_ras(
+                d["ct_on_pet_grid"].astype(np.float32), pet_spacing, pet_origin
+            )
+            files_written["ct"] = _save_nifti(
+                ct_ras, ct_aff, out_dir / f"{stem}_CT.nii.gz", "MicroCT (Gamma Medica HU)"
+            ).name
+            files_written["ct_on_pet"] = _save_nifti(
+                ct_on_pet_ras, pet_aff, out_dir / f"{stem}_CT_on_pet.nii.gz", "MicroCT on PET grid"
+            ).name
+            files_written["seg_ct"] = _save_nifti(
+                seg_ct_ras, ct_aff, out_dir / f"{stem}_seg_ct.nii.gz", "ROIs on CT: 1=RT, 2=Ctrl, 3=Muscle"
+            ).name
+
+        meta = {
+            "mouse_id": mid,
+            "roi_id_2010": str(d["roi_id_2010"]),
+            "cage": str(d["cage"]),
+            "ear_punch": str(d["ear_punch"]),
+            "scan_date": str(d["scan_date"]),
+            "days_post_injection": int(d["days_post_injection"]),
+            "days_post_rt": int(d["days_post_rt"]),
+            "scan_set": str(d["scan_set"]),
+            "has_rt_roi": bool(d["has_rt_roi"]),
+            "has_ctrl_roi": bool(d["has_ctrl_roi"]),
+            "rt_roi_label": str(d["rt_roi_label"]),
+            "ctrl_roi_label": str(d["ctrl_roi_label"]),
+            "muscle_roi_label": str(d["muscle_roi_label"]),
+            "muscle_mean_idg": round(float(d["muscle_mean_idg"]), 6),
+            "muscle_std_idg": round(float(d["muscle_std_idg"]), 6),
+            "ct_available": ct_avail,
+            "ct_note": str(d["ct_note"]),
+            "pet_units": "%ID/g",
+            "pet_tm_units": "Tumor-to-Muscle ratio (dimensionless)",
+            "orientation": "RAS+",
+            "segmentation_labels": {"1": "RT_20Gy", "2": "Control_0Gy", "3": "Muscle_BG"},
+            "files": files_written,
+        }
+        (out_dir / f"{stem}_metadata.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+        print(f"  Exported {out_dir.relative_to(root).as_posix()} ({len(files_written)} NIfTI files)")
+
+
+def verify_nifti_outputs(root: Path = Path("/workspace")) -> None:
+    """
+    Reloads all 19 NIfTI scan sets via nibabel and verifies:
+      1. Canonical RAS+ orientation ('R', 'A', 'S') on every volume
+      2. Exact %ID/g and T/M intensity means inside label 1 (RT) & label 2 (Ctrl) vs CSV
+      3. Co-registration of PET and native CT in physical RAS+ mm (tumour centroid agreement)
+      4. Exact shape & affine identity between CT_on_pet and PET_idg
+    """
+    df = pd.read_csv(root / "results/first_ef5_rt_study/longitudinal_imaging_summary.csv")
+    nifti_root = root / "outputs" / "first_ef5_rt_study" / "nifti"
+    meta_files = sorted(nifti_root.rglob("*_metadata.json"))
+    assert len(meta_files) == len(SCAN_SPECS), f"Expected {len(SCAN_SPECS)} NIfTI scan folders, found {len(meta_files)}"
+
+    print(f"\n=== Verifying {len(meta_files)} NIfTI Scan Sets ===")
+    for mf in meta_files:
+        meta = json.loads(mf.read_text(encoding="utf-8"))
+        out_dir = mf.parent
+        mid = meta["mouse_id"]
+        day = int(meta["days_post_rt"])
+
+        pet_img = nib.load(str(out_dir / meta["files"]["pet_idg"]))
+        tm_img = nib.load(str(out_dir / meta["files"]["pet_tm"]))
+        seg_img = nib.load(str(out_dir / meta["files"]["seg_pet"]))
+
+        assert nib.aff2axcodes(pet_img.affine) == ("R", "A", "S"), f"Non-RAS PET affine: {mf}"
+        assert np.allclose(pet_img.affine, tm_img.affine) and np.allclose(pet_img.affine, seg_img.affine)
+
+        pet_arr = np.asarray(pet_img.dataobj, dtype=np.float32)
+        tm_arr = np.asarray(tm_img.dataobj, dtype=np.float32)
+        seg_arr = np.asarray(seg_img.dataobj, dtype=np.uint8)
+
+        parts = []
+        for has_flag, lbl_id, trt, tag in [
+            (meta["has_rt_roi"], 1, "RT_20Gy", "RT"),
+            (meta["has_ctrl_roi"], 2, "Control_0Gy", "Ctrl"),
+        ]:
+            m = seg_arr == lbl_id
+            if has_flag:
+                mean_idg = float(pet_arr[m].mean())
+                mean_tm = float(tm_arr[m].mean())
+                row = df[(df["mouse_id"] == mid) & (df["days_post_rt"] == day) & (df["treatment"] == trt)].iloc[0]
+                assert abs(mean_idg - row["pet_mean_idg"]) < 1e-3, f"NIfTI PET mismatch: {mid} {day} {trt}"
+                assert abs(mean_tm - row["tm_mean"]) < 1e-3, f"NIfTI T/M mismatch: {mid} {day} {trt}"
+                parts.append(f"{tag}={mean_idg:.4f}(T/M {mean_tm:.2f})")
+            else:
+                assert not m.any(), f"Unexpected label {lbl_id} voxels in {mf}"
+
+        ct_msg = "PET-only"
+        if meta["ct_available"]:
+            ct_img = nib.load(str(out_dir / meta["files"]["ct"]))
+            ct_pet_img = nib.load(str(out_dir / meta["files"]["ct_on_pet"]))
+            seg_ct_img = nib.load(str(out_dir / meta["files"]["seg_ct"]))
+
+            assert nib.aff2axcodes(ct_img.affine) == ("R", "A", "S"), f"Non-RAS CT affine: {mf}"
+            assert ct_pet_img.shape == pet_img.shape and np.allclose(ct_pet_img.affine, pet_img.affine)
+            assert seg_ct_img.shape == ct_img.shape and np.allclose(seg_ct_img.affine, ct_img.affine)
+
+            # Check physical RAS+ centroid co-registration between PET seg and native CT seg
+            # Use Ctrl label (2) on c2_M1L1R Day -15 since RT touches the CT FOV edge
+            check_lbl = 2 if (mid == "c2_M1L1R" and day == -15) else (1 if meta["has_rt_roi"] else 2)
+            pts_pet = np.argwhere(seg_arr == check_lbl).mean(axis=0)
+            pts_ct = np.argwhere(np.asarray(seg_ct_img.dataobj, dtype=np.uint8) == check_lbl).mean(axis=0)
+            ras_pet = nib.affines.apply_affine(pet_img.affine, pts_pet)
+            ras_ct = nib.affines.apply_affine(ct_img.affine, pts_ct)
+            dist_mm = float(np.linalg.norm(ras_pet - ras_ct))
+            assert dist_mm < 1.0, f"PET/CT RAS centroid mismatch ({dist_mm:.2f} mm) in {mf}"
+            ct_msg = f"CT={ct_img.shape}, PET-CT centroid diff={dist_mm:.2f} mm"
+
+        print(f"  OK {out_dir.relative_to(nifti_root).as_posix():30s} | RAS+ | {' | '.join(parts)} | {ct_msg}")
+    print(f"ALL {len(meta_files)} NIFTI SCAN SETS VERIFIED!")
+
+
+def _backfill_nifti_dir_in_tables(root: Path = Path("/workspace")) -> None:
+    """Adds nifti_dir column to existing longitudinal_imaging_summary.csv without rerunning full cropping."""
+    for p in [
+        root / "results/first_ef5_rt_study/longitudinal_imaging_summary.csv",
+        root / "outputs/first_ef5_rt_study/tables/longitudinal_imaging_summary.csv",
+    ]:
+        if not p.exists():
+            continue
+        df = pd.read_csv(p)
+        nifti_dirs = df["voxel_bundle_path"].map(
+            lambda s: f"outputs/first_ef5_rt_study/nifti/{Path(s).parent.name}/{Path(s).stem[len(Path(s).parent.name) + 1:]}"
+        )
+        if "nifti_dir" in df.columns:
+            df["nifti_dir"] = nifti_dirs
+        else:
+            idx = df.columns.get_loc("voxel_bundle_path") + 1
+            df.insert(idx, "nifti_dir", nifti_dirs)
+        df.to_csv(p, index=False)
 
 
 def verify_voxel_bundles(root: Path = Path("/workspace")) -> None:
@@ -1109,4 +1366,16 @@ def verify_voxel_bundles(root: Path = Path("/workspace")) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="First EF5 RT Study (A549) processing & export pipeline.")
+    parser.add_argument(
+        "--nifti-only",
+        action="store_true",
+        help="Export and verify NIfTI (.nii.gz) volumes directly from existing verified .npz voxel bundles.",
+    )
+    args = parser.parse_args()
+    if args.nifti_only:
+        _backfill_nifti_dir_in_tables()
+        export_nifti_dataset()
+        verify_nifti_outputs()
+    else:
+        main()
