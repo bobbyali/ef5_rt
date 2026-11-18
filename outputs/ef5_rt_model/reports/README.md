@@ -1,5 +1,7 @@
 # Visual Comparison Report (v2): 1D Spheroid & 3D Voxel RT Models vs Real In Vivo Data
 
+> **Companion Technical Report:** See [technical_report.md](technical_report.md) for the full abstract, literature positioning, mathematical derivation, software architecture, checked references, and future multi-modal extensions.
+
 This report presents visual and quantitative evaluations of the **v2 refined** mathematical models of tumour growth, oxygenation, and radiotherapy response developed from the First EF5 RT Study (A549 subcutaneous xenografts) and historical PLOS ONE dataset ([10.1371/journal.pone.0139425](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0139425)).
 
 ### Key v2 Model Refinements

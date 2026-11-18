@@ -145,7 +145,9 @@ Both the 1D and 3D simulators share a single, physically consistent biophysics e
 ### Sub-Goal 2: 3D Image-Initialised Voxel Model
 * **Per-Tumour Image Initialisation (`src/modeling/voxel_initializer.py`):** Resamples each tumour's Day -1 CT mask (geometry) and EF5 PET `T/M` map (hypoxia) onto an isotropic `0.5 mm` 3D grid with a shared physiological host boundary ($p_{\text{bdry}} = 35\text{ mmHg}$) and anchors a tumour-specific 3D vascular supply field $h_v(\mathbf{x})$ (preserving Day -1 spatial PET fidelity $r = 0.84\text{--}0.97$).
 * **3D Continuum Mechanics (`src/modeling/voxel_rt_model.py`):** Solves the 3D quasi-steady nonlinear oxygen PDE and 3D Darcy pressure Poisson equation ($-\nabla^2 P = S_{\text{vol}}$, $\mathbf{u} = -\nabla P$) with conservative upwind finite-volume advection and packing projection, exporting both longitudinal metrics (`results/ef5_rt_model/voxel_study_comparison.csv`) and 3D RAS+ NIfTI predictions (`outputs/ef5_rt_model/voxel/nifti/`).
-* **Visual Comparison Report:** Full side-by-side 1D growth-curve comparisons, 5-slice 3D PET/CT vs virtual EF5 & $p\text{O}_2$ ROI stacks, and 5-mouse bilateral growth curves are tracked in [outputs/ef5_rt_model/reports/visual_comparison_report.md](outputs/ef5_rt_model/reports/visual_comparison_report.md).
+* **Reports & Technical Documentation:**
+  * Full technical report (abstract, literature positioning, mathematical formulation, implementation details, and future multi-modal extensions): [outputs/ef5_rt_model/reports/technical_report.md](outputs/ef5_rt_model/reports/technical_report.md)
+  * Visual comparison report (side-by-side 1D curves, 5-slice 3D PET/CT vs virtual EF5 & $p\text{O}_2$ ROI stacks, and 5-mouse bilateral growth curves): [outputs/ef5_rt_model/reports/visual_comparison_report.md](outputs/ef5_rt_model/reports/visual_comparison_report.md)
 
 ---
 
