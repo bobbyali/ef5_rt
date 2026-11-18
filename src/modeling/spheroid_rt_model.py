@@ -43,6 +43,7 @@ from src.modeling.physics import (
     o2_consumption_mm,
     po2_to_ef5_tm,
     proliferation_rate,
+    vascular_damage_fraction,
 )
 
 
@@ -240,6 +241,28 @@ class SpheroidRTModel:
         R_new = max(R_mm * float(np.exp(r_dot_over_r * dt)), 0.05)
         return updated, R_new
 
+    @staticmethod
+    def _solve_spherical_darcy_pressure(
+        S_net: np.ndarray,
+        R_mm: float,
+        edges: np.ndarray,
+        centers: np.ndarray,
+        shell_w: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Exact 1D spherical Darcy pressure profile solving:
+            -(1 / (R^2 xi^2)) d/dxi (xi^2 dP/dxi) = S_net(xi),   P'(0) = 0,  P(1) = 0
+        Matches the 3D Darcy equation -laplacian(P) = S_vol identically in spherical symmetry.
+        """
+        dxi = edges[1] - edges[0]
+        cum_int = np.concatenate([[0.0], np.cumsum(S_net * shell_w)])
+        # Mid-shell integral_0^{xi_i} S(s) s^2 ds / xi_i^2
+        mid_int = 0.5 * (cum_int[:-1] + cum_int[1:])
+        dp_dxi_neg = (R_mm**2) * mid_int / np.maximum(centers**2, 1e-12)
+        # Integrate inward from xi = 1 (P = 0) to xi = centers[i]
+        P_from_rim = np.cumsum(dp_dxi_neg[::-1] * dxi)[::-1] - 0.5 * dp_dxi_neg * dxi
+        return P_from_rim
+
     def _step(
         self,
         R_mm: float,
@@ -248,23 +271,30 @@ class SpheroidRTModel:
         phi_d2: np.ndarray,
         phi_n: np.ndarray,
         p_o2: np.ndarray,
+        P_darcy: np.ndarray,
+        vasc_factor: float,
         dt: float,
         edges: np.ndarray,
+        centers: np.ndarray,
         shell_w: np.ndarray,
-    ) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         prm = self.params
-        kp = proliferation_rate(p_o2, prm)
+        vol_cm3 = (4.0 / 3.0) * np.pi * (R_mm**3) / 1000.0
+        kp = proliferation_rate(p_o2, prm, vol_cm3=vol_cm3, pressure=P_darcy)
         kn = necrosis_rate(p_o2, prm)
-        kcl = clearance_rate(p_o2, prm)
+        boost = prm.high_dose_lysis_boost * max(1.0 - vasc_factor, 0.0)
+        kcl = clearance_rate(p_o2, prm) + 0.5 * boost
+        k_nec_eff = prm.k_nec_clear + boost
 
         # Local cellular reaction rates R_i (volume created/destroyed per unit volume per day)
         R_v = (kp - prm.ka_basal - kn) * phi_v
         R_d1 = (prm.k_d1_prolif - prm.k_d1_to_d2) * phi_d1
         R_d2 = prm.k_d1_to_d2 * phi_d1 - kcl * phi_d2
-        R_n = kn * phi_v + prm.eta_fibrotic * kcl * phi_d2 - prm.k_nec_clear * phi_n
+        R_n = kn * phi_v + prm.eta_fibrotic * kcl * phi_d2 - k_nec_eff * phi_n
 
         # Net local volume source S_net = sum(R_i)
         S_net = R_v + R_d1 + R_d2 + R_n
+        P_new = self._solve_spherical_darcy_pressure(S_net, R_mm, edges, centers, shell_w)
 
         # Operator-split update:
         # 1) Local reaction update for concentrations in fixed volume:
@@ -280,7 +310,7 @@ class SpheroidRTModel:
         [phi_v_new, phi_d1_new, phi_d2_new, phi_n_new], R_new = self._advect_spherical_shells(
             [phi_v_r, phi_d1_r, phi_d2_r, phi_n_r], S_net, R_mm, dt, edges, shell_w
         )
-        return R_new, phi_v_new, phi_d1_new, phi_d2_new, phi_n_new
+        return R_new, phi_v_new, phi_d1_new, phi_d2_new, phi_n_new, P_new
 
     def run(self, scenario: SpheroidScenario) -> SpheroidSimulationResult:
         prm = self.params
@@ -291,10 +321,16 @@ class SpheroidRTModel:
         c_floor = float(np.clip(scenario.core_vasc_floor, 0.0, 1.0))
         h_profile_base = prm.h_vasc_base * scenario.h_vasc_scale * (c_floor + (1.0 - c_floor) * (centers**2))
 
-        def _h_eff(R_cur: float, v_fac: float = 1.0) -> np.ndarray:
+        def _h_eff(R_cur: float, v_fac: float = 1.0, p_mech: Optional[np.ndarray] = None) -> np.ndarray:
             vol_cm3_cur = (4.0 / 3.0) * np.pi * (R_cur**3) / 1000.0
             vol_atten = 1.0 / (1.0 + vol_cm3_cur / max(prm.v_vasc_half_cm3, 1e-3))
-            return h_profile_base * vol_atten * v_fac
+            # Byrne/Jain solid-stress vascular compression: positive Darcy pressure compresses capillaries;
+            # post-RT pressure drop (P <= 0) mechanically decompresses vessels -> acute reoxygenation!
+            if p_mech is not None and prm.p_darcy_crit > 0.0:
+                patency = 1.0 / (1.0 + 3.0 * np.maximum(p_mech, 0.0) / prm.p_darcy_crit)
+            else:
+                patency = 1.0
+            return h_profile_base * vol_atten * v_fac * patency
 
         # --- Stage A: Pre-RT equilibration to build self-consistent viable/hypoxic/necrotic shells ---
         # Start slightly smaller and grow until reaching ~R0_mm at t = 0
@@ -303,21 +339,22 @@ class SpheroidRTModel:
         phi_d1 = np.zeros(scenario.n_shells, dtype=np.float64)
         phi_d2 = np.zeros(scenario.n_shells, dtype=np.float64)
         phi_n = np.zeros(scenario.n_shells, dtype=np.float64)
-        p_o2 = self.solve_oxygen_profile(R, phi_v, phi_d1, phi_d2, scenario.p_bdry_mmHg, _h_eff(R), scenario.gamma_scale)
+        P_darcy = np.zeros(scenario.n_shells, dtype=np.float64)
+        p_o2 = self.solve_oxygen_profile(R, phi_v, phi_d1, phi_d2, scenario.p_bdry_mmHg, _h_eff(R, 1.0, P_darcy), scenario.gamma_scale)
 
         n_pre = int(round(scenario.t_pre_eq_days / scenario.dt_days))
         for _ in range(n_pre):
-            R, phi_v, phi_d1, phi_d2, phi_n = self._step(
-                R, phi_v, phi_d1, phi_d2, phi_n, p_o2, scenario.dt_days, edges, shell_w
+            R, phi_v, phi_d1, phi_d2, phi_n, P_darcy = self._step(
+                R, phi_v, phi_d1, phi_d2, phi_n, p_o2, P_darcy, 1.0, scenario.dt_days, edges, centers, shell_w
             )
             p_o2 = self.solve_oxygen_profile(
-                R, phi_v, phi_d1, phi_d2, scenario.p_bdry_mmHg, _h_eff(R), scenario.gamma_scale, p_init=p_o2
+                R, phi_v, phi_d1, phi_d2, scenario.p_bdry_mmHg, _h_eff(R, 1.0, P_darcy), scenario.gamma_scale, p_init=p_o2
             )
 
         # Rescale outer radius cleanly to exact scenario.R0_mm at Day 0 while keeping equilibrated shell structure
         R = scenario.R0_mm
         p_o2 = self.solve_oxygen_profile(
-            R, phi_v, phi_d1, phi_d2, scenario.p_bdry_mmHg, _h_eff(R), scenario.gamma_scale, p_init=p_o2
+            R, phi_v, phi_d1, phi_d2, scenario.p_bdry_mmHg, _h_eff(R, 1.0, P_darcy), scenario.gamma_scale, p_init=p_o2
         )
 
         # --- Stage B: Post-RT evolution (t = 0 .. t_end_days) ---
@@ -378,24 +415,26 @@ class SpheroidRTModel:
                 killed = (1.0 - sf) * phi_v
                 phi_v = sf * phi_v
                 phi_d1 = phi_d1 + killed
-                if prm.vasc_damage_max > 0.0:
-                    drop = prm.vasc_damage_max * (dose_gy**2 / (dose_gy**2 + prm.vasc_damage_d50**2))
-                    vasc_factor = max(0.2, vasc_factor * (1.0 - drop))
-                # Re-solve quasi-steady oxygen immediately post-RT (shows instant drop in demand!)
+                drop = vascular_damage_fraction(dose_gy, prm)
+                if drop > 0.0:
+                    vasc_factor = max(0.15, vasc_factor * (1.0 - drop))
+                p_bdry_eff = scenario.p_bdry_mmHg * (0.35 + 0.65 * vasc_factor)
+                # Re-solve quasi-steady oxygen immediately post-RT
                 p_o2 = self.solve_oxygen_profile(
-                    R, phi_v, phi_d1, phi_d2, scenario.p_bdry_mmHg, _h_eff(R, vasc_factor), scenario.gamma_scale, p_init=p_o2
+                    R, phi_v, phi_d1, phi_d2, p_bdry_eff, _h_eff(R, vasc_factor, P_darcy), scenario.gamma_scale, p_init=p_o2
                 )
                 if k == 0:
                     save_snapshot("post_rt_day0")
 
             # Advance cellular dynamics + moving boundary
-            R, phi_v, phi_d1, phi_d2, phi_n = self._step(
-                R, phi_v, phi_d1, phi_d2, phi_n, p_o2, scenario.dt_days, edges, shell_w
+            R, phi_v, phi_d1, phi_d2, phi_n, P_darcy = self._step(
+                R, phi_v, phi_d1, phi_d2, phi_n, p_o2, P_darcy, vasc_factor, scenario.dt_days, edges, centers, shell_w
             )
             # Vascular recovery
             vasc_factor = min(1.0, vasc_factor + prm.vasc_recovery_rate * (1.0 - vasc_factor) * scenario.dt_days)
+            p_bdry_eff = scenario.p_bdry_mmHg * (0.35 + 0.65 * vasc_factor)
             p_o2 = self.solve_oxygen_profile(
-                R, phi_v, phi_d1, phi_d2, scenario.p_bdry_mmHg, _h_eff(R, vasc_factor), scenario.gamma_scale, p_init=p_o2
+                R, phi_v, phi_d1, phi_d2, p_bdry_eff, _h_eff(R, vasc_factor, P_darcy), scenario.gamma_scale, p_init=p_o2
             )
             record_state(k + 1)
 
@@ -439,19 +478,21 @@ def make_plos_one_scenarios(
     Creates matched Control, EF5+ (hypoxic), and EF5- (normoxic) spheroid scenarios for a given
     PLOS ONE radiotherapy regimen.
 
-    EF5+ vs EF5- differ ONLY via physical baseline microvascular perfusion & oxygenation (no OER hack!):
-      - Control (population average): p_bdry = 34 mmHg, h_vasc_scale = 2.0, core_vasc_floor = 0.25
-      - EF5- (well-perfused core+rim): p_bdry = 36 mmHg, h_vasc_scale = 3.2, core_vasc_floor = 0.80
-      - EF5+ (rim-only perfusion, hypoxic core): p_bdry = 32 mmHg, h_vasc_scale = 0.12, core_vasc_floor = 0.05
+    All three phenotypes share the same physiological host boundary pO2 (35 mmHg) and differ ONLY
+    via internal tumour microvascular perfusion & metabolic demand (no OER hacks!):
+      - Control (population average): h_vasc_scale = 2.2, core_vasc_floor = 0.35
+      - EF5- (well-perfused core+rim): h_vasc_scale = 3.5, core_vasc_floor = 0.85
+      - EF5+ (viable chronic hypoxia): h_vasc_scale = 0.88, core_vasc_floor = 0.58
     """
     sched = list(dose_schedule)
+    p_host = RadiobiologyParams().p_host_bdry
     return {
         "Control": SpheroidScenario(
             name=f"{label} Control",
             R0_mm=4.2,
-            p_bdry_mmHg=34.0,
-            h_vasc_scale=2.0,
-            core_vasc_floor=0.25,
+            p_bdry_mmHg=p_host,
+            h_vasc_scale=2.2,
+            core_vasc_floor=0.35,
             gamma_scale=1.0,
             dose_schedule=[],
             t_end_days=t_end_days,
@@ -459,9 +500,9 @@ def make_plos_one_scenarios(
         "EF5-": SpheroidScenario(
             name=f"{label} EF5- (Normoxic)",
             R0_mm=4.2,
-            p_bdry_mmHg=36.0,
-            h_vasc_scale=3.2,
-            core_vasc_floor=0.80,
+            p_bdry_mmHg=p_host,
+            h_vasc_scale=3.5,
+            core_vasc_floor=0.85,
             gamma_scale=0.85,
             dose_schedule=sched,
             t_end_days=t_end_days,
@@ -469,10 +510,10 @@ def make_plos_one_scenarios(
         "EF5+": SpheroidScenario(
             name=f"{label} EF5+ (Hypoxic)",
             R0_mm=4.2,
-            p_bdry_mmHg=32.0,
-            h_vasc_scale=0.12,
-            core_vasc_floor=0.05,
-            gamma_scale=1.35,
+            p_bdry_mmHg=p_host,
+            h_vasc_scale=1.15,
+            core_vasc_floor=0.60,
+            gamma_scale=1.18,
             dose_schedule=sched,
             t_end_days=t_end_days,
         ),

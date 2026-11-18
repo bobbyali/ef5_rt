@@ -117,7 +117,7 @@ def build_fig1_1d_plos_one_comparison(root: Path, out_dir: Path) -> None:
         )
         ax2.axhline(1.0, color="#999999", ls=":", lw=1.0)
         ax2.set_xlim(0, 35)
-        ax2.set_ylim(0.4, 3.2)
+        ax2.set_ylim(0.4, 3.8)
         ax2.set_title(f"Refined {label}", fontsize=10.5, fontweight="bold")
         ax2.set_ylabel("Normalized Volume (V / V0)", fontsize=9.5)
         if row_idx == 3:
@@ -413,6 +413,7 @@ def _extract_sim_multislice(
     snap = res.snapshots[snap_day]
     tm = snap["ef5_tm"]
     po2 = snap["p_o2"]
+    phi = snap["phi"]
     mask = snap["roi_mask"]
     st = res.init_state
     if np.any(mask):
@@ -442,6 +443,7 @@ def _extract_sim_multislice(
                 "dz_actual": float(st.z_mm[zi] - z_c),
                 "tm": tm[:, zi, :],
                 "po2": po2[:, zi, :],
+                "phi": phi[:, zi, :],
                 "mask": mask[:, zi, :],
             }
         )
@@ -471,11 +473,16 @@ def build_fig3_multislice_panel(
     contour_col = "#FF4081" if side == "rt" else "#00E5FF"
     trt_lbl = "Irradiated (20 Gy)" if side == "rt" else "Control (0 Gy)"
     lim_mm = 10.5
-    tm_clim = (0.5, 4.8)
+    tm_clim = (0.7, 4.5)
     po2_clim = (0.0, 35.0)
 
-    fig, axes = plt.subplots(9, 5, figsize=(14.5, 21.5), dpi=120, facecolor="#111111")
-    fig.subplots_adjust(left=0.11, right=0.93, top=0.935, bottom=0.03, wspace=0.08, hspace=0.22)
+    cmap_tm = plt.get_cmap("inferno").copy()
+    cmap_tm.set_bad("#0A0812")
+    cmap_po2 = plt.get_cmap("viridis").copy()
+    cmap_po2.set_bad("#141414")
+
+    fig, axes = plt.subplots(9, 5, figsize=(14.5, 22.0), dpi=120, facecolor="#111111")
+    fig.subplots_adjust(left=0.11, right=0.93, top=0.918, bottom=0.03, wspace=0.08, hspace=0.26)
 
     im_tm_ref = None
     im_po2_ref = None
@@ -486,6 +493,15 @@ def build_fig3_multislice_panel(
         r_obs = tp_i * 3
         r_ef5 = tp_i * 3 + 1
         r_po2 = tp_i * 3 + 2
+
+        if r_obs == 0:
+            mod_tag = "PET/CT" if (obs and obs["ct_avail"]) else "PET-only"
+            obs_tag = f"Obs Vol={obs['vol_cm3']:.2f} cc, T/M={obs['mean_tm']:.2f}" if obs else "No Obs Scan"
+            fig.text(
+                0.52, 0.941,
+                f"--- {tp_title} ({mod_tag}: {obs_tag} | Sim Vol={sim['vol_cm3']:.2f} cc, T/M={sim['mean_tm']:.2f}) ---",
+                color="#FFD740", fontsize=9.2, fontweight="bold", ha="center", va="bottom",
+            )
 
         for c_i, dz in enumerate(offsets_mm):
             # Row A: Real PET/CT Overlay
@@ -506,7 +522,7 @@ def build_fig3_multislice_panel(
                 ax.set_xlim(-lim_mm, lim_mm)
                 ax.set_ylim(-lim_mm, lim_mm)
             if r_obs == 0:
-                ax.set_title(f"Slice z {dz:+.1f} mm", color="white", fontsize=9.5, fontweight="bold")
+                ax.set_title(f"Slice z {dz:+.1f} mm", color="white", fontsize=9.5, fontweight="bold", pad=4)
             elif c_i == 2:
                 mod_tag = "PET/CT" if (obs and obs["ct_avail"]) else "PET-only"
                 obs_tag = f"Obs Vol={obs['vol_cm3']:.2f} cc, T/M={obs['mean_tm']:.2f}" if obs else "No Obs Scan"
@@ -514,12 +530,13 @@ def build_fig3_multislice_panel(
             if c_i == 0:
                 ax.set_ylabel(f"{tp_title.split()[0]} {tp_title.split()[1]}\nReal PET/CT", color="white", fontsize=8.5, fontweight="bold")
 
-            # Row B: Simulated 3D Virtual EF5 T/M
+            # Row B: Simulated 3D Virtual EF5 T/M (masked outside tumour active footprint for clean contrast)
             ax = axes[r_ef5, c_i]
-            ax.set_facecolor("black")
+            ax.set_facecolor("#0A0812")
             sl_s = sim["slices"][c_i]
             ext_s = sim["extent"]
-            im_tm_ref = ax.imshow(sl_s["tm"], cmap="inferno", vmin=tm_clim[0], vmax=tm_clim[1], extent=ext_s, origin="lower", interpolation="bilinear", aspect="equal")
+            tm_masked = np.where(sl_s["phi"] >= 0.05, sl_s["tm"], np.nan)
+            im_tm_ref = ax.imshow(tm_masked, cmap=cmap_tm, vmin=tm_clim[0], vmax=tm_clim[1], extent=ext_s, origin="lower", interpolation="bilinear", aspect="equal")
             if np.any(sl_s["mask"]):
                 ax.contour(sl_s["mask"].astype(float), levels=[0.5], colors=[contour_col], linewidths=1.5, extent=ext_s, origin="lower")
             ax.set_xlim(-lim_mm, lim_mm)
@@ -527,10 +544,11 @@ def build_fig3_multislice_panel(
             if c_i == 0:
                 ax.set_ylabel("Sim 3D\nEF5 T/M", color=contour_col, fontsize=8.5, fontweight="bold")
 
-            # Row C: Simulated 3D Local pO2 (mmHg)
+            # Row C: Simulated 3D Local pO2 (mmHg) — exterior host stroma masked dark so intra-tumour pO2 is unambiguous
             ax = axes[r_po2, c_i]
-            ax.set_facecolor("black")
-            im_po2_ref = ax.imshow(sl_s["po2"], cmap="viridis", vmin=po2_clim[0], vmax=po2_clim[1], extent=ext_s, origin="lower", interpolation="bilinear", aspect="equal")
+            ax.set_facecolor("#141414")
+            po2_masked = np.where(sl_s["phi"] >= 0.05, sl_s["po2"], np.nan)
+            im_po2_ref = ax.imshow(po2_masked, cmap=cmap_po2, vmin=po2_clim[0], vmax=po2_clim[1], extent=ext_s, origin="lower", interpolation="bilinear", aspect="equal")
             if np.any(sl_s["mask"]):
                 ax.contour(sl_s["mask"].astype(float), levels=[0.5], colors=["white"], linewidths=1.3, extent=ext_s, origin="lower")
             ax.set_xlim(-lim_mm, lim_mm)
@@ -680,7 +698,14 @@ def main() -> None:
 
     # Cohort-wide 3D simulated vs real growth curves
     build_fig4_3d_growth_curves_all_mice(root, out_dir, results_by_mouse)
-    print(f"All visual report figures saved under {out_dir}")
+
+    # Sync report figures into the git-tracked reports/figures folder
+    import shutil
+    rep_fig_dir = root / "outputs" / "ef5_rt_model" / "reports" / "figures"
+    rep_fig_dir.mkdir(parents=True, exist_ok=True)
+    for png in out_dir.glob("*.png"):
+        shutil.copy2(png, rep_fig_dir / png.name)
+    print(f"All visual report figures saved under {out_dir} and synced to {rep_fig_dir}")
 
 
 if __name__ == "__main__":

@@ -222,12 +222,10 @@ def initialize_tumour_from_npz(
 
     # Convert EF5 T/M to initial pO2 inside tumour
     p_from_ef5 = ef5_tm_to_po2(pet_tm0, prm, viable_frac=np.maximum(1.0 - nec_frac_core, 0.35), p_min=0.35)
-    # Estimate tumour-specific peritumoural boundary pO2 from well-oxygenated rim voxels (75th pct)
+    # Use consistent physiological host peritumoural boundary pO2 across all mice (inter-tumour
+    # hypoxia differences arise from each tumour's internal microvascular supply field h_v(x)).
     rim_mask = (phi0 >= 0.5) & (dist_from_rim_mm <= 1.2)
-    if np.any(rim_mask):
-        p_bdry = float(np.clip(np.percentile(p_from_ef5[rim_mask], 85) * 1.35, 16.0, prm.p_max))
-    else:
-        p_bdry = prm.p_max
+    p_bdry = float(prm.p_host_bdry)
 
     po2_0 = phi0 * np.minimum(p_from_ef5, p_bdry) + (1.0 - phi0) * p_bdry
     # Gentle smoothing inside tumour to prevent numerical spikes in Laplacian inversion
@@ -241,11 +239,13 @@ def initialize_tumour_from_npz(
     denom = np.maximum(p_bdry - po2_0, 1.5)
     h_raw = (cons_0 - prm.D_o2 * lap_p0) / denom
     h_raw = np.clip(h_raw, 0.0, 4.0)
-    # Smooth vascular field and set rim perfusion baseline for newly expanding tissue
+    # Smooth vascular field and set rim perfusion baseline for newly expanding angiogenic tissue
     h_vasc0 = gaussian_filter(h_raw, sigma=0.5)
     h_vasc0 = np.where(phi0 >= 0.1, h_vasc0, 0.0)
 
-    rim_h_vasc = float(np.clip(np.median(h_vasc0[rim_mask]) if np.any(rim_mask) else prm.h_vasc_base, 0.015, 0.8))
+    rim_obs = float(np.median(h_vasc0[rim_mask])) if np.any(rim_mask) else prm.h_vasc_base
+    # Newly recruited peripheral angiogenic rim blends tumour baseline with well-perfused host capillaries
+    rim_h_vasc = float(np.clip(0.35 * rim_obs + 0.65 * (3.2 * prm.h_vasc_base), 0.22, 0.85))
 
     treatment = "RT_20Gy" if side_key == "rt" else "Control_0Gy"
     dose_gy = (20.0 if side_key == "rt" else 0.0) if dose_gy_override is None else float(dose_gy_override)

@@ -45,6 +45,7 @@ from src.modeling.physics import (
     necrosis_rate,
     po2_to_ef5_tm,
     proliferation_rate,
+    vascular_damage_fraction,
 )
 from src.modeling.voxel_initializer import VoxelTumourInitialState
 
@@ -482,6 +483,7 @@ class VoxelRTModel:
         record(0)
 
         for k in range(n_steps):
+            p_bdry_eff = init_state.p_bdry_mmHg * (0.35 + 0.65 * vasc_factor)
             # 1) Apply instantaneous radiation dose event if scheduled at step k
             if k in dose_events:
                 dose_gy = dose_events[k]
@@ -489,28 +491,32 @@ class VoxelRTModel:
                 killed = (1.0 - sf) * V
                 V = sf * V
                 D1 = D1 + killed
-                if prm.vasc_damage_max > 0.0:
-                    drop = prm.vasc_damage_max * (dose_gy**2 / (dose_gy**2 + prm.vasc_damage_d50**2))
-                    vasc_factor = max(0.2, vasc_factor * (1.0 - drop))
+                drop = vascular_damage_fraction(dose_gy, prm)
+                if drop > 0.0:
+                    vasc_factor = max(0.15, vasc_factor * (1.0 - drop))
+                p_bdry_eff = init_state.p_bdry_mmHg * (0.35 + 0.65 * vasc_factor)
                 p_o2 = self.solve_oxygen_3d(
-                    V, D1, D2, V + D1 + D2 + N, h_vasc * vasc_factor, init_state.p_bdry_mmHg, dx,
+                    V, D1, D2, V + D1 + D2 + N, h_vasc * vasc_factor, p_bdry_eff, dx,
                     p_init=p_o2, phi_thresh=cfg.phi_active_thresh,
                     cg_tol=cfg.cg_tol, cg_maxiter=cfg.cg_maxiter,
                 )
 
             # 2) Compute local cellular reaction sources (identical physics to Sub-Goal 1!)
-            kp = proliferation_rate(p_o2, prm)
+            phi = V + D1 + D2 + N
+            vol_cur_cm3 = float(np.sum(phi)) * vox_cm3
+            kp = proliferation_rate(p_o2, prm, vol_cm3=vol_cur_cm3, pressure=P_darcy)
             kn = necrosis_rate(p_o2, prm)
-            kcl = clearance_rate(p_o2, prm)
+            boost = prm.high_dose_lysis_boost * max(1.0 - vasc_factor, 0.0)
+            kcl = clearance_rate(p_o2, prm) + 0.5 * boost
+            k_nec_eff = prm.k_nec_clear + boost
 
             R_V = (kp - prm.ka_basal - kn) * V
             R_D1 = (prm.k_d1_prolif - prm.k_d1_to_d2) * D1
             R_D2 = prm.k_d1_to_d2 * D1 - kcl * D2
-            R_N = kn * V + prm.eta_fibrotic * kcl * D2 - prm.k_nec_clear * N
+            R_N = kn * V + prm.eta_fibrotic * kcl * D2 - k_nec_eff * N
             S_vol = R_V + R_D1 + R_D2 + R_N
 
             # 3) Solve 3D Darcy pressure Poisson equation: -laplacian(P) = S_vol inside tumour
-            phi = V + D1 + D2 + N
             P_darcy = self.solve_darcy_pressure_3d(
                 S_vol, phi, dx, P_init=P_darcy,
                 phi_thresh=cfg.phi_active_thresh, cg_tol=cfg.cg_tol, cg_maxiter=cfg.cg_maxiter,
@@ -527,40 +533,46 @@ class VoxelRTModel:
             D2_r = np.maximum(D2 + cfg.dt_days * R_D2, 0.0)
             N_r = np.maximum(N + cfg.dt_days * R_N, 0.0)
 
+            phi_prev = phi.copy()
             V_a, D1_a, D2_a, N_a = _upwind_advect_3d([V_r, D1_r, D2_r, N_r], uy, uz, ux, dx, cfg.dt_days)
             V, D1, D2, N = _relax_packing_overshoot([V_a, D1_a, D2_a, N_a], n_iters=4)
             phi = V + D1 + D2 + N
 
             # 5) Evolve vascular supply field with moving tumour rim:
-            #    - Newly grown outer rim voxels inherit baseline rim perfusion (attenuated by macroscopic
-            #      volume-dependent angiogenic lag as total tumour volume expands above v_vasc_half_cm3,
-            #      capturing both Gompertzian growth deceleration and rising hypoxia in large control tumours!)
+            #    - Newly invaded outer rim voxels recruit host angiogenesis (rim_target),
+            #      while existing tumour voxels retain their measured spatial vascularity h_vasc0
+            #      (only mildly attenuating with depth/growth — never artificially re-vascularising
+            #      non-growing irradiated hypoxic cores!).
             roi_now = phi >= cfg.phi_roi_thresh
             vol_now_cm3 = float(np.sum(phi)) * vox_cm3
             vol_init_cm3 = max(float(vol_arr[0]), 1e-4)
-            # Relative vascular efficiency drops smoothly as tumour expands above baseline & v_vasc_half_cm3
             vol_atten = (1.0 + vol_init_cm3 / prm.v_vasc_half_cm3) / (1.0 + vol_now_cm3 / prm.v_vasc_half_cm3)
-            vol_atten = float(np.clip(vol_atten, 0.15, 1.5))
+            vol_atten = float(np.clip(vol_atten, 0.45, 1.25))
 
             if np.any(roi_now):
                 dist_mm = distance_transform_edt(roi_now) * dx
-                rim_target = init_state.rim_h_vasc * vol_atten * np.exp(-dist_mm / 1.8)
-                # Gently relax vascularity toward rim-perfused profile as tissue remodels
-                remodel_rate = 0.06 * cfg.dt_days
-                h_vasc = np.where(
-                    phi >= cfg.phi_active_thresh,
-                    (1.0 - remodel_rate) * h_vasc + remodel_rate * rim_target,
-                    0.0,
-                )
-                # Ensure freshly invaded rim voxels have at least rim_target
-                newly_invaded = (phi >= cfg.phi_active_thresh) & (h_vasc < 0.15 * rim_target)
+                rim_target = init_state.rim_h_vasc * vol_atten * np.exp(-dist_mm / 1.35)
+                active_now = phi >= cfg.phi_active_thresh
+                # Newly invaded voxels (previously outside active tumour) inherit angiogenic rim perfusion
+                newly_invaded = active_now & (phi_prev < cfg.phi_active_thresh)
                 h_vasc = np.where(newly_invaded, rim_target, h_vasc)
+                # In actively growing tissue (S_vol > 0), gently remodel deep vessels toward rim_target
+                # so growing control cores develop realistic hypoxia; do NOT pump up non-growing RT cores.
+                remodel_rate = 0.03 * cfg.dt_days
+                growing_mask = active_now & (S_vol > 0.005)
+                h_vasc = np.where(
+                    growing_mask,
+                    (1.0 - remodel_rate) * h_vasc + remodel_rate * rim_target,
+                    h_vasc,
+                )
+                h_vasc = np.where(active_now, h_vasc, 0.0)
 
             vasc_factor = min(1.0, vasc_factor + prm.vasc_recovery_rate * (1.0 - vasc_factor) * cfg.dt_days)
+            p_bdry_eff = init_state.p_bdry_mmHg * (0.35 + 0.65 * vasc_factor)
 
-            # 6) Re-solve 3D quasi-steady oxygen PDE on updated tumour geometry & viable cells
+            # 6) Re-solve 3D quasi-steady oxygen PDE (vol_atten is encoded once in rim_target!)
             p_o2 = self.solve_oxygen_3d(
-                V, D1, D2, phi, h_vasc * vasc_factor * vol_atten, init_state.p_bdry_mmHg, dx,
+                V, D1, D2, phi, h_vasc * vasc_factor, p_bdry_eff, dx,
                 p_init=p_o2, phi_thresh=cfg.phi_active_thresh,
                 cg_tol=cfg.cg_tol, cg_maxiter=cfg.cg_maxiter,
             )

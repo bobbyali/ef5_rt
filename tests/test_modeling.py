@@ -25,6 +25,7 @@ from src.modeling.physics import (
     oer_alper_howard_flanders,
     omf_oxygen_modifier,
     po2_to_ef5_tm,
+    vascular_damage_fraction,
 )
 from src.modeling.spheroid_rt_model import SpheroidRTModel, make_plos_one_scenarios
 from src.modeling.voxel_initializer import VoxelTumourInitialState, initialize_tumour_from_npz
@@ -55,6 +56,13 @@ class TestPhysics(unittest.TestCase):
         self.assertTrue(np.allclose(p_rec, p_vals, rtol=1e-3))
         tm_nec = po2_to_ef5_tm(0.5, viable_frac=0.0, params=prm, d1_frac=0.0)
         self.assertTrue(np.isclose(tm_nec, prm.tm_min, atol=1e-9))
+
+    def test_high_dose_vascular_damage_spares_standard_fractions(self) -> None:
+        prm = RadiobiologyParams()
+        self.assertLess(vascular_damage_fraction(5.0, prm), 0.02)
+        self.assertLess(vascular_damage_fraction(10.0, prm), 0.12)
+        self.assertGreater(vascular_damage_fraction(20.0, prm), 0.50)
+        self.assertGreater(vascular_damage_fraction(40.0, prm), 0.75)
 
 
 class TestSubGoal1Spheroid(unittest.TestCase):
@@ -97,8 +105,14 @@ class TestSubGoal1Spheroid(unittest.TestCase):
 
         self.assertGreater(r_ctrl.rel_volume[-1], 2.0)
         self.assertLess(r_ctrl.rel_volume[-1], 5.5)
+        # Mechanical/Darcy pressure saturation produces concave-down Control growth (late slope < early slope)
+        i_early = int(np.argmin(np.abs(r_ctrl.t_days - 12.0)))
+        i_mid = int(np.argmin(np.abs(r_ctrl.t_days - 20.0)))
+        early_rate = (r_ctrl.rel_volume[i_early] - r_ctrl.rel_volume[0]) / 12.0
+        late_rate = (r_ctrl.rel_volume[-1] - r_ctrl.rel_volume[i_mid]) / (r_ctrl.t_days[-1] - r_ctrl.t_days[i_mid])
+        self.assertLess(late_rate, early_rate, "Control volume growth should decelerate (concave-down)")
         gap_1x10 = float(r_10_h.rel_volume[-1] - r_10_n.rel_volume[-1])
-        self.assertGreater(gap_1x10, 0.10, f"Expected EF5+ > EF5- at 1x10 Gy, got gap={gap_1x10:.3f}")
+        self.assertGreater(gap_1x10, 0.30, f"Expected strong EF5+ > EF5- separation at 1x10 Gy, got gap={gap_1x10:.3f}")
 
         # 2) 1 x 40 Gy: EF5+ and EF5- converge and shrink below baseline without vanishing
         sc_1x40 = make_plos_one_scenarios([(0.0, 40.0)], "1x40 Gy", t_end_days=35.0)
@@ -193,7 +207,10 @@ class TestSubGoal2Voxel3D(unittest.TestCase):
         roi0 = res.snapshots[0.0]["roi_mask"]
         r_init = float(np.corrcoef(st_rt.pet_tm0[roi0], res.snapshots[0.0]["ef5_tm"][roi0])[0, 1])
         self.assertGreater(r_init, 0.70, f"Expected initial 3D EF5 spatial fidelity r > 0.70, got {r_init:.3f}")
+        self.assertTrue(np.isclose(st_rt.p_bdry_mmHg, prm.p_host_bdry, atol=1e-6))
         self.assertLess(res.mean_ef5_tm[-1], res.mean_ef5_tm[0])
+        # Post-RT Day +13 retains visible residual EF5 uptake (not collapsed to background 1.0)
+        self.assertGreater(res.mean_ef5_tm[-1], 1.30)
 
 
 if __name__ == "__main__":
