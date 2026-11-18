@@ -222,24 +222,24 @@ $$\frac{\partial \phi_k}{\partial t} + \nabla \cdot (\mathbf{u}\,\phi_k) = R_k(\
 
 ### 2.4 Shared Biophysical Parameters (`RadiobiologyParams`, v2)
 
-| Symbol | Code Field | Value | Units | Physical Meaning |
-| :--- | :--- | :---: | :--- | :--- |
-| $p_{\text{host}}$ | `p_host_bdry` | `35.0` | `mmHg` | Shared host subcutaneous peritumoural $p\text{O}_2$ |
-| $p_{\text{hyp}}, p_{\text{nec}}$ | `p_hyp`, `p_nec` | `0.60`, `0.45` | `mmHg` | Half-max glycolytic proliferation & anoxia necrosis thresholds |
-| $k_{p,\max}, k_{p,\text{hyp}}$ | `kp_max`, `kp_hyp_floor` | `0.130`, `0.055` | `day⁻¹` | Normoxic & viable-hypoxic proliferation rates |
-| $V_{\text{stress}}, n_s$ | `v_stress_cm3`, `hill_stress` | `0.55`, `2.0` | `cm³`, `–` | Host elastic crowding saturation scale & exponent |
-| $P_{\text{crit}}$ | `p_darcy_crit` | `0.65` | `mm²/day` | Critical Darcy pressure for stress-inhibited mitosis & vessel compression |
-| $k_a, k_{\text{nec},\max}$ | `ka_basal`, `k_nec_max` | `0.010`, `0.085` | `day⁻¹` | Basal apoptosis & severe-anoxia necrosis conversion rate |
-| $k_{D_1,\text{prolif}}, k_{D_1 \to D_2}$ | `k_d1_prolif`, `k_d1_to_d2` | `0.022`, `0.075` | `day⁻¹` | Abortive swelling & ~13.3-day p53-WT senescence transit lag |
-| $k_{\text{cl},\min}, k_{\text{cl},\text{O}_2}$ | `k_clear_min`, `k_clear_o2` | `0.012`, `0.052` | `day⁻¹` | Baseline & perfusion-assisted lysis clearance rates of $D_2$ |
-| $\eta_{\text{fib}}, k_{\text{nec,cl}}$ | `eta_fibrotic`, `k_nec_clear` | `0.60`, `0.008` | `–`, `day⁻¹` | Persistent fibrotic scaffold fraction & slow core compaction |
-| $D_{\text{O}_2}, \gamma_0, K_m$ | `D_o2`, `gamma_0`, `K_m_o2` | `0.010`, `6.0`, `2.0` | `mm²/u`, `mmHg/u`, `mmHg` | Krogh-scale O₂ transport ($L_{\text{O}_2} \approx 0.24\text{ mm}$) & Michaelis–Menten uptake |
-| $q_{D_1}, q_{D_2}$ | `q_d1`, `q_d2` | `0.14`, `0.08` | `–` | Relative O₂ demand of doomed $D_1$ & lysing/inflammatory $D_2$ |
-| $\alpha, \beta$ | `alpha`, `beta` | `0.185`, `0.018` | `Gy⁻¹`, `Gy⁻²` | Normoxic *in vivo* A549 LQ radiosensitivity ($\alpha/\beta = 10.3\text{ Gy}$) |
-| $m, K_{\text{OER}}$ | `oer_max`, `K_oer` | `3.0`, `3.5` | `–`, `mmHg` | Alper–Howard-Flanders maximal OER & half-sensitisation $p\text{O}_2$ |
-| $D_{50,\text{vasc}}, h_v, \Delta_{\max}$ | `vasc_damage_*` | `15.5`, `5.0`, `0.82` | `Gy`, `–`, `–` | High-dose endothelial injury threshold, Hill steepness & max drop |
-| $r_{\text{rec}}, k_{\text{boost}}$ | `vasc_recovery_rate`, `high_dose_lysis_boost` | `0.012`, `0.068` | `day⁻¹` | Post-RT microvascular recovery & collapse-driven compaction boost |
-| $\text{TM}_{\min}, \text{TM}_{\max}, K_{\text{EF5}}, w_{D_1}$ | `tm_*`, `K_ef5`, `ef5_d1_weight` | `1.0`, `5.5`, `5.5`, `0.82` | `–`, `–`, `mmHg`, `–` | Koch/Evans bioreductive EF5 PET binding & senescent $D_1$ weight |
+| Symbol | Code Field | Value | Units | Physical Meaning | Literature Support / Calibration Source |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| $p_{\text{host}}$ | `p_host_bdry` | `35.0` | `mmHg` | Shared host subcutaneous peritumoural $p\text{O}_2$ | Normal subcutaneous tissue $p\text{O}_2 \approx 30\text{--}40\text{ mmHg}$ [20, 21] |
+| $p_{\text{hyp}}, p_{\text{nec}}$ | `p_hyp`, `p_nec` | `0.60`, `0.45` | `mmHg` | Half-max glycolytic proliferation & severe anoxia necrosis thresholds | Anoxia/necrosis onset $< 0.5\text{--}1.0\text{ mmHg}$ [7, 18, 20] |
+| $k_{p,\max}, k_{p,\text{hyp}}$ | `kp_max`, `kp_hyp_floor` | `0.130`, `0.055` | `day⁻¹` | Normoxic & viable-hypoxic proliferation rates | Calibrated to A549 untreated `Day -15 → Day -1` & control growth [1] |
+| $V_{\text{stress}}, n_s$ | `v_stress_cm3`, `hill_stress` | `0.55`, `2.0` | `cm³`, `–` | Host elastic crowding saturation scale & exponent | Solid-stress crowding mechanics [8–10]; calibrated to A549 flank plateau [1] |
+| $P_{\text{crit}}$ | `p_darcy_crit` | `0.65` | `mm²/day` | Critical Darcy pressure for stress-inhibited mitosis & vessel compression | Byrne Darcy mechanics [8, 9] & Jain solid-stress vessel compression [10] |
+| $k_a, k_{\text{nec},\max}$ | `ka_basal`, `k_nec_max` | `0.010`, `0.085` | `day⁻¹` | Basal apoptosis & severe-anoxia necrosis conversion rate | Necrotic core formation dynamics [7, 8]; tuned to A549 xenografts |
+| $k_{D_1,\text{prolif}}, k_{D_1 \to D_2}$ | `k_d1_prolif`, `k_d1_to_d2` | `0.022`, `0.075` | `day⁻¹` | Abortive swelling & ~13.3-day p53-WT senescence transit lag | Delayed mitotic catastrophe / composition dynamics [5]; calibrated to A549 [1] |
+| $k_{\text{cl},\min}, k_{\text{cl},\text{O}_2}$ | `k_clear_min`, `k_clear_o2` | `0.012`, `0.052` | `day⁻¹` | Baseline & perfusion-assisted lysis clearance rates of $D_2$ | Oxygen-modulated post-RT clearance [5]; calibrated to PLOS ONE [1] |
+| $\eta_{\text{fib}}, k_{\text{nec,cl}}$ | `eta_fibrotic`, `k_nec_clear` | `0.60`, `0.008` | `–`, `day⁻¹` | Persistent fibrotic scaffold fraction & slow core compaction | Non-vanishing post-RT tumour floor (`~0.7×` at `40 Gy`) [1, 5] |
+| $D_{\text{O}_2}, \gamma_0, K_m$ | `D_o2`, `gamma_0`, `K_m_o2` | `0.010`, `6.0`, `2.0` | `mm²/u`, `mmHg/u`, `mmHg` | Krogh-scale O₂ transport ($L_{\text{O}_2} \approx 0.24\text{ mm}$) & Michaelis–Menten uptake | Krogh diffusion distance `~100–250 μm` & $K_m \approx 1\text{--}2.5\text{ mmHg}$ [18, 19] |
+| $q_{D_1}, q_{D_2}$ | `q_d1`, `q_d2` | `0.14`, `0.08` | `–` | Relative O₂ demand of doomed $D_1$ & lysing/inflammatory $D_2$ | Post-RT metabolic drop driving reoxygenation [5]; calibrated to EF5 PET |
+| $\alpha, \beta$ | `alpha`, `beta` | `0.185`, `0.018` | `Gy⁻¹`, `Gy⁻²` | Normoxic *in vivo* A549 LQ radiosensitivity ($\alpha/\beta = 10.3\text{ Gy}$) | Canonical tumour $\alpha/\beta \approx 10\text{ Gy}$ [4]; calibrated to A549 *in vivo* [1] |
+| $m, K_{\text{OER}}$ | `oer_max`, `K_oer` | `3.0`, `3.5` | `–`, `mmHg` | Alper–Howard-Flanders maximal OER & half-sensitisation $p\text{O}_2$ | Standard $m \approx 2.8\text{--}3.0$, $K_{\text{OER}} \approx 2.5\text{--}4.0\text{ mmHg}$ [2, 3, 20] |
+| $D_{50,\text{vasc}}, h_v, \Delta_{\max}$ | `vasc_damage_*` | `15.5`, `5.0`, `0.82` | `Gy`, `–`, `–` | High-dose endothelial injury threshold, Hill steepness & max drop | Acute endothelial apoptosis & vascular shutdown above `10–20 Gy` [11, 12] |
+| $r_{\text{rec}}, k_{\text{boost}}$ | `vasc_recovery_rate`, `high_dose_lysis_boost` | `0.012`, `0.068` | `day⁻¹` | Post-RT microvascular recovery & collapse-driven compaction boost | Secondary cell death / collapse after high-dose vascular injury [12] |
+| $\text{TM}_{\min}, \text{TM}_{\max}, K_{\text{EF5}}, w_{D_1}$ | `tm_*`, `K_ef5`, `ef5_d1_weight` | `1.0`, `5.5`, `5.5`, `0.82` | `–`, `–`, `mmHg`, `–` | Koch/Evans bioreductive EF5 PET binding & senescent $D_1$ weight | Half-max EF5 binding `~0.5–1% O₂` (`4–7.6 mmHg`) [13]; A549 `T/M` range [1] |
 
 ---
 
@@ -263,6 +263,9 @@ $$\frac{\partial \phi_k}{\partial t} + \nabla \cdot (\mathbf{u}\,\phi_k) = R_k(\
 16. **Rockne R, Rockhill JK, Mrugala M, Spence AM, Kalet I, Hendrickson K, Lai A, Cloughesy T, Alvord EC Jr, Swanson KR (2010).** *Predicting the efficacy of radiotherapy in individual glioblastoma patients in vivo: a mathematical modeling approach.* **Physics in Medicine and Biology**, 55(12): 3271–3285. DOI: [10.1088/0031-9155/55/12/001](https://doi.org/10.1088/0031-9155/55/12/001)
 17. **Toma-Dasu I, Uhrdin J, Antonovic L, Dasu A, Nuyts S, Dirix P, Haustermans K, Brahme A (2012).** *Dose prescription and treatment planning based on FMISO-PET hypoxia.* **Acta Oncologica**, 51(2): 222–230. DOI: [10.3109/0284186X.2011.599815](https://doi.org/10.3109/0284186X.2011.599815)
 18. **Grimes DR, Kelly CJ, Bloch K, Partridge M (2014).** *A method for estimating the oxygen consumption rate in multicellular tumour spheroids.* **Journal of the Royal Society Interface**, 11(96): 20131124. DOI: [10.1098/rsif.2013.1124](https://doi.org/10.1098/rsif.2013.1124)
+19. **Thomlinson RH, Gray LH (1955).** *The histological structure of some human lung cancers and the possible implications for radiotherapy.* **British Journal of Cancer**, 9(4): 539–549. DOI: [10.1038/bjc.1955.55](https://doi.org/10.1038/bjc.1955.55)
+20. **Brown JM, Wilson WR (2004).** *Exploiting tumour hypoxia in cancer treatment.* **Nature Reviews Cancer**, 4(6): 437–447. DOI: [10.1038/nrc1367](https://doi.org/10.1038/nrc1367)
+21. **Vaupel P, Höckel M, Mayer A (2007).** *Detection and characterization of tumor hypoxia using pO2 histography.* **Antioxidants & Redox Signaling**, 9(8): 1221–1236. DOI: [10.1089/ars.2007.1628](https://doi.org/10.1089/ars.2007.1628)
 
 ---
 

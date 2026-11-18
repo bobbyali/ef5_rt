@@ -456,6 +456,33 @@ def _extract_sim_multislice(
     }
 
 
+def _adaptive_z_offsets(
+    npz_path: Path, side: str, res: VoxelSimulationResult, snap_day: float
+) -> List[float]:
+    """
+    Computes 5 evenly spaced coronal slice offsets spanning [-span, +span] around the tumour
+    centroid at a given timepoint, adapting to tumour growth so enlarged Day +13/+32 control
+    tumours do not clip out peripheral hypoxic lobes.
+    """
+    z_half = 3.4
+    if npz_path.exists():
+        d = np.load(npz_path, allow_pickle=False)
+        if bool(d[f"has_{side}_roi"].item()):
+            mk = np.asarray(d[f"mask_{side}_pet"], dtype=bool)
+            if np.any(mk):
+                z_mm = np.asarray(d["pet_z_mm"], dtype=np.float64)
+                iz = np.nonzero(mk)[1]
+                z_half = 0.5 * float(np.max(z_mm[iz]) - np.min(z_mm[iz]))
+    else:
+        mask_s = res.snapshots[snap_day]["roi_mask"]
+        if np.any(mask_s):
+            iz = np.nonzero(mask_s)[1]
+            z_mm = res.init_state.z_mm
+            z_half = 0.5 * float(np.max(z_mm[iz]) - np.min(z_mm[iz]))
+    span = round(float(np.clip(0.68 * z_half, 2.4, 5.2)), 1)
+    return [round(span * f, 1) for f in (-1.0, -0.5, 0.0, 0.5, 1.0)]
+
+
 def build_fig3_multislice_panel(
     root: Path,
     out_path: Path,
@@ -466,10 +493,10 @@ def build_fig3_multislice_panel(
     """
     Renders a 9-row x 5-column multi-slice ROI visual stack:
       3 timepoints (Day -1, Day +13, Day +32) x 3 modalities (Real PET/CT Overlay, Sim EF5 T/M, Sim pO2)
-      across 5 coronal slices spanning the tumour ROI (dz = -2.4, -1.2, 0.0, +1.2, +2.4 mm).
+      across 5 coronal slices spanning each timepoint's tumour ROI z-extent.
     """
-    offsets_mm = [-2.4, -1.2, 0.0, 1.2, 2.4]
     tp_specs = [(-1, 0.0, "Day -1 (Pre-RT)"), (13, 14.0, "Day +13 (Post-RT)"), (32, 33.0, "Day +32 (Post-RT)")]
+    col_headers = ["Slice 1 (-span)", "Slice 2 (-span/2)", "Center (z = 0)", "Slice 4 (+span/2)", "Slice 5 (+span)"]
     contour_col = "#FF4081" if side == "rt" else "#00E5FF"
     trt_lbl = "Irradiated (20 Gy)" if side == "rt" else "Control (0 Gy)"
     lim_mm = 10.5
@@ -488,7 +515,9 @@ def build_fig3_multislice_panel(
     im_po2_ref = None
 
     for tp_i, (d_study, sk, tp_title) in enumerate(tp_specs):
-        obs = _extract_obs_multislice(_bundle_path(root, mouse_id, d_study), side, offsets_mm)
+        npz_tp = _bundle_path(root, mouse_id, d_study)
+        offsets_mm = _adaptive_z_offsets(npz_tp, side, res, sk)
+        obs = _extract_obs_multislice(npz_tp, side, offsets_mm)
         sim = _extract_sim_multislice(res, sk, offsets_mm)
         r_obs = tp_i * 3
         r_ef5 = tp_i * 3 + 1
@@ -521,8 +550,14 @@ def build_fig3_multislice_panel(
                     ax.contour(sl["mask"].astype(float), levels=[0.5], colors=[contour_col], linewidths=1.5, extent=ext, origin="lower")
                 ax.set_xlim(-lim_mm, lim_mm)
                 ax.set_ylim(-lim_mm, lim_mm)
+                ax.text(
+                    0.04, 0.94, f"z={dz:+.1f} mm",
+                    color="white", fontsize=7.5, fontweight="bold", ha="left", va="top",
+                    transform=ax.transAxes,
+                    bbox=dict(boxstyle="round,pad=0.18", facecolor="black", alpha=0.65, edgecolor="none"),
+                )
             if r_obs == 0:
-                ax.set_title(f"Slice z {dz:+.1f} mm", color="white", fontsize=9.5, fontweight="bold", pad=4)
+                ax.set_title(col_headers[c_i], color="white", fontsize=9.2, fontweight="bold", pad=4)
             elif c_i == 2:
                 mod_tag = "PET/CT" if (obs and obs["ct_avail"]) else "PET-only"
                 obs_tag = f"Obs Vol={obs['vol_cm3']:.2f} cc, T/M={obs['mean_tm']:.2f}" if obs else "No Obs Scan"
