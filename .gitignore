@@ -1,6 +1,9 @@
 # Dataset images and generated outputs (excluded from version control)
 images/
-outputs/
+outputs/*
+!outputs/ef5_rt_model/
+outputs/ef5_rt_model/*
+!outputs/ef5_rt_model/reports/
 
 # Defensive exclusions for large binary imaging / voxel / raw scanner files
 *.dcm

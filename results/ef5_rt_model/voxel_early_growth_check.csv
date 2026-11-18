@@ -1,0 +1,4 @@
+tumour_id,geometry_source,obs_dm15_vol_cm3,sim_dm15_vol_cm3,obs_dm1_vol_cm3,sim_dm1_vol_cm3,obs_fold_growth,sim_fold_growth,obs_dm15_tm_mean,obs_dm1_tm_mean,sim_dm15_tm_mean,sim_dm1_tm_mean
+c2_M0_RT,CT,0.0814,0.081,0.4241,0.2018,5.21,2.49,1.001,2.277,1.341,1.338
+c2_M0_Ctrl,CT,0.0831,0.0864,0.3315,0.2153,3.99,2.49,1.188,2.195,1.34,1.341
+c2_M1L1R_Ctrl,CT,0.1229,0.1189,0.4198,0.2959,3.42,2.49,1.448,2.063,1.368,1.36

@@ -132,3 +132,33 @@ flowchart TD
 | `--overlay-alpha` | `0.78` | Maximum opacity of the smooth-alpha PET layer in fused overlays |
 | `--full-long-axis` | `False` | Keep full cranial-caudal Y axis in coronal/sagittal views instead of zooming to ROIs |
 | `--dpi` | `120` | Output resolution (`120` DPI = `1200 × 960 px` for single frames) |
+
+---
+
+## Mathematical Modelling of Tumour Growth & Hypoxia Radiotherapy Response (`ef5_rt_model` branch)
+
+The `src/modeling/` package builds on curated Stanford postdoc modelling work (`images/set4/past_work/`) and the longitudinal First EF5 RT Study voxel bundles (`outputs/first_ef5_rt_study/voxel_bundles/`) to provide two linked radiobiological simulators sharing a unified oxygen-dependent physics core (`src/modeling/physics.py`):
+
+1. **Sub-Goal 1 — Coupled 1D Spheroid ODE/PDE Model (`src/modeling/spheroid_rt_model.py`, `src/modeling/legacy_spheroid.py`)**:
+   - Ports and audits the 2013 MATLAB spheroid ODE (`my_spheroid_07/08`) and Dr. Alex Fletcher's `CodeForBobby.m` (verified against Helen Byrne's exact analytical Greenspan Eqs. 44–50).
+   - Replaces ad-hoc binary rim width and volume-threshold brakes with a coupled quasi-steady spherical oxygen PDE, Alper–Howard-Flanders continuous OER + corrected LQ survival, two-stage mitotic-catastrophe clearance, and emergent inter-fraction reoxygenation across PLOS ONE single-fraction and fractionated schedules (`0 Gy`, `1×10`, `1×20`, `1×40`, `2×10`, `4×5`, `4×10 Gy`).
+2. **Sub-Goal 2 — Tumour-Specific 3D Image-Initialised Voxel Model (`src/modeling/voxel_initializer.py`, `src/modeling/voxel_rt_model.py`)**:
+   - Initialises a 3D isotropic (`0.5 mm`) continuum PDE model directly from pre-treatment (Day -1) CT tumour geometry and EF5 PET spatial hypoxia, anchoring a per-tumour vascular supply field $h_v(\mathbf{x})$ to preserve each tumour's measured 3D hypoxia distribution.
+   - Couples a 3D quasi-steady oxygen PDE with 3D Darcy pressure-velocity tumour expansion/contraction mechanics (`-∇²P = S_vol`, `u = -∇P`, extending Helen Byrne's PCMI notes Sec. 5) and a virtual EF5 PET forward model, exporting both comparison figures and 3D RAS+ NIfTI predictions (`outputs/ef5_rt_model/voxel/nifti/`).
+
+### Running the Modelling Pipelines & Tests
+```bash
+# Sub-Goal 1: 1D spheroid validation & PLOS ONE regimen sweep
+docker compose run --rm ef5 python -m src.modeling.run_spheroid_study
+
+# Sub-Goal 2: 3D CT/EF5-PET image-initialised study across the 5 longitudinal A549 mice
+docker compose run --rm ef5 python -m src.modeling.run_voxel_study
+
+# Visual comparison report generator (1D & 3D vs real data)
+docker compose run --rm ef5 python -m src.modeling.generate_visual_report
+
+# Automated physics, analytical, and 3D conservation tests
+docker compose run --rm ef5 python -m unittest discover -s tests -v
+```
+Interactive exploration is available via JupyterLab in `notebooks/explore_ef5_rt_models.ipynb`, visual comparison reports are in `outputs/ef5_rt_model/reports/`, and planning/walkthrough notes are tracked under `agent_notes/modelling/`.
+
