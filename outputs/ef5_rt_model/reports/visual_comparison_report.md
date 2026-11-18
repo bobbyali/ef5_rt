@@ -54,10 +54,10 @@ Summary tables are stored in [results/ef5_rt_model/](../../../results/ef5_rt_mod
 - **Day -1**: Anchored Day -1 spatial PET correlation `r = 0.968` (`Sim T/M = 2.65` vs `Obs 3.04`) with consistent `35 mmHg` host boundary and clean dark masked background.
 - **Day +13 & Day +32 Post-RT**: Clear visible residual EF5 uptake (`Sim T/M = 1.46` at Day +13, `1.33` at Day +32 vs `Obs 1.88 → 1.49`), including re-emergence of the surviving central hypoxic hotspot on slice `z = 0.0 mm` at Day +32 mirroring the real PET.
 
-#### 2. Mouse `c2_M1R` — Contralateral Control Tumour (`0 Gy`)
-![3D Multi-Slice c2_M1R Control 0 Gy](figures/03b_3d_multislice_c2_M1R_Ctrl_0Gy.png)
+#### 2. Mouse `c2_M1L` — Untreated Control Tumour (`0 Gy`)
+![3D Multi-Slice c2_M1L Control 0 Gy](figures/03b_3d_multislice_c2_M1L_Ctrl_0Gy.png)
 
-- **Longitudinal Growth & Hypoxia**: Expands concave-down (`0.19 → 0.51 → 0.97 cm³` vs `Obs 0.18 → 0.54 → 0.76 cm³`); fixing the double `vol_atten` bug reduces simulated Control EF5 over-brightness (`T/M = 2.19 / 2.35` vs `2.47 / 2.91` in v1) while clearly showing the oxygenated rim vs hypoxic core in the masked `pO2` maps.
+- **Longitudinal Growth & Sustained Hypoxia**: Expands concave-down (`0.44 → 0.80 → 1.16 cm³` vs `Obs 0.44 → 0.95 → 1.59 cm³`) while closely matching the bright, bilobed intra-tumoural hypoxic core at Day `-1` (`Sim T/M = 2.85` vs `Obs 3.23`) and Day `+13` (`Sim T/M = 2.52` vs `Obs 2.76`), with the oxygenated rim vs hypoxic core clearly resolved in the masked `pO2` maps. *(By comparison, `c2_M1R` Control showed an abrupt Day `+13` drop in both bilateral tumours [`3.07 → 1.53`], pointing to a scan-day reference shift or early necrosis; see `../voxel/figures/c2_M1R_observed_vs_simulated.png`.)*
 
 #### 3. Mouse `c2_M1L1R` — Irradiated Tumour (`20 Gy`)
 ![3D Multi-Slice c2_M1L1R RT 20 Gy](figures/03c_3d_multislice_c2_M1L1R_RT_20Gy.png)

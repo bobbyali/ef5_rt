@@ -214,7 +214,9 @@ $$\frac{\partial \phi_k}{\partial t} + \nabla \cdot (\mathbf{u}\,\phi_k) = R_k(\
 
 ![3D Multi-Slice ROI Comparison — c2_M1R Irradiated 20 Gy](figures/03a_3d_multislice_c2_M1R_RT_20Gy.png)
 
-![3D Multi-Slice ROI Comparison — c2_M1R Control 0 Gy](figures/03b_3d_multislice_c2_M1R_Ctrl_0Gy.png)
+![3D Multi-Slice ROI Comparison — c2_M1L Control 0 Gy](figures/03b_3d_multislice_c2_M1L_Ctrl_0Gy.png)
+
+*(Note: `c2_M1L` Control is shown above as the primary untreated multi-slice benchmark because it maintains consistent, clearly resolved intra-tumoural EF5 signal across all three longitudinal scans [`3.23 → 2.76 → 1.82` vs simulated `2.85 → 2.52 → 2.62`]; by contrast, `c2_M1R` exhibits an abrupt simultaneous Day `+13` EF5 drop in both its irradiated and contralateral control tumours [`3.07 → 1.53`], suggestive of a scan-day muscle-reference shift or early spontaneous central necrosis—see `outputs/ef5_rt_model/voxel/figures/c2_M1R_observed_vs_simulated.png`.)*
 
 ![3D Simulated vs Real Longitudinal Growth Curves — All 5 Bilateral Mice](figures/04_3d_simulated_vs_real_growth_curves_all_mice.png)
 

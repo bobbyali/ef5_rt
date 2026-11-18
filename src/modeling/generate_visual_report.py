@@ -9,7 +9,7 @@ and Sub-Goal 2 (3D CT/EF5-PET image-initialised voxel model):
      (Real A549 20 Gy First Study + 7 Gy rt_data_a549.mat curves overlaid against Original 2013 ODE
       and Refined Oxygen-PDE Model, plus quantitative comparison panels.)
   3. outputs/ef5_rt_model/visual_report/03a_3d_multislice_c2_M1R_RT_20Gy.png
-     outputs/ef5_rt_model/visual_report/03b_3d_multislice_c2_M1R_Ctrl_0Gy.png
+     outputs/ef5_rt_model/visual_report/03b_3d_multislice_c2_M1L_Ctrl_0Gy.png
      outputs/ef5_rt_model/visual_report/03c_3d_multislice_c2_M1L1R_RT_20Gy.png
      (5-slice stacks spanning each tumour ROI at Day -1, Day +13, Day +32 comparing Real PET/CT Overlay
       vs Simulated 3D Virtual EF5 T/M vs Simulated 3D pO2 mmHg.)
@@ -725,10 +725,10 @@ def main() -> None:
             cfg = VoxelSimulationConfig(t_end_days=33.0, dt_days=0.5, dose_schedule=sched, snapshot_days=[0.0, 14.0, 33.0])
             results_by_mouse[mid][side] = model_3d.run(st, cfg)
 
-    # Multi-slice ROI stacks for showcase mice (c2_M1R full PET+CT at all 3 timepoints; c2_M1L1R low-hypoxia responder)
+    # Multi-slice ROI stacks for showcase mice (c2_M1R IR full PET+CT reoxygenation; c2_M1L Ctrl sustained hypoxic control growth; c2_M1L1R IR low-hypoxia responder)
     print("   Rendering multi-slice ROI stacks...")
     build_fig3_multislice_panel(root, out_dir / "03a_3d_multislice_c2_M1R_RT_20Gy.png", "c2_M1R", "rt", results_by_mouse["c2_M1R"]["rt"])
-    build_fig3_multislice_panel(root, out_dir / "03b_3d_multislice_c2_M1R_Ctrl_0Gy.png", "c2_M1R", "ctrl", results_by_mouse["c2_M1R"]["ctrl"])
+    build_fig3_multislice_panel(root, out_dir / "03b_3d_multislice_c2_M1L_Ctrl_0Gy.png", "c2_M1L", "ctrl", results_by_mouse["c2_M1L"]["ctrl"])
     build_fig3_multislice_panel(root, out_dir / "03c_3d_multislice_c2_M1L1R_RT_20Gy.png", "c2_M1L1R", "rt", results_by_mouse["c2_M1L1R"]["rt"])
 
     # Cohort-wide 3D simulated vs real growth curves
