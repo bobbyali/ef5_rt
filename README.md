@@ -36,7 +36,9 @@ Python + Docker scientific toolkit for:
 │   ├── first_ef5_rt_study/             # Reconciled CSV tables (calipers, imaging stats, ID map, timeline, audit)
 │   └── ef5_rt_model/                   # Tabular 1D & 3D simulation vs real-data validation summaries
 ├── outputs/
-│   └── ef5_rt_model/reports/           # Tracked visual comparison report (visual_comparison_report.md + PNGs)
+│   ├── first_ef5_rt_study/             # Tracked longitudinal montages, per-scan QC PNGs, & CSV tables
+│   ├── ef5_rt_model/                   # Tracked 1D/3D figures & visual comparison report (NIfTIs excluded)
+│   └── prelim_work/                    # Local Set 1 & Set 2 exploratory slice outputs (gitignored)
 ├── notebooks/
 │   ├── explore_set1.ipynb              # Interactive 3-plane slice explorer for Set 1
 │   ├── run_slice_generator.ipynb       # Guide for configuring & running ef5_slice_cli
@@ -47,7 +49,7 @@ Python + Docker scientific toolkit for:
 └── .gitignore                          # Excludes raw images/ & large outputs/ while tracking reports/
 ```
 
-*(Large raw scanner volumes under `images/` and heavy generated binary outputs such as `.npz` bundles and `.nii.gz` files under `outputs/` are excluded via `.gitignore`, while curated CSV tables in `results/` and the visual comparison report in `outputs/ef5_rt_model/reports/` are tracked in git.)*
+*(Large raw scanner volumes under `images/`, exploratory slice stacks under `outputs/prelim_work/`, and heavy binary outputs such as `.npz` bundles, `.dcm`, and `.nii.gz` NIfTI volumes are excluded via `.gitignore`. Lightweight `.png` figures, `.csv` tables, and markdown reports under `results/`, `outputs/first_ef5_rt_study/`, and `outputs/ef5_rt_model/` are tracked in git.)*
 
 ---
 
@@ -101,7 +103,7 @@ docker compose run --rm ef5 python -m src.modeling.generate_visual_report
 ### Curated Cohorts & Datasets
 1. **Set 1 (`c1_M0`) & Set 2 (`day2_set5`, 4-mouse bed)**:
    - Verified 100% against reference `day2_set5_stats.txt` (all CT and PET rows).
-   - `src/process_set2.py` crops the 4-mouse bed via 80 mm `body` ROIs into standalone per-mouse DICOM + `.ROI` triplets fed into the shared `src/ef5_slice_cli.py` 3-axis visualiser.
+   - `src/process_set2.py` crops the 4-mouse bed via 80 mm `body` ROIs into standalone per-mouse DICOM + `.ROI` triplets under `outputs/prelim_work/set2/` fed into the shared `src/ef5_slice_cli.py` 3-axis visualiser (`src/inspect_set1.py` writes Set 1 outputs under `outputs/prelim_work/set1/`).
 2. **First EF5 RT Study — Longitudinal Bilateral A549 Cohort (`src/process_first_ef5_rt_study.py`)**:
    - Curated and reconciled **5 longitudinal bilateral mice** (`c2_M1R`, `c2_M0`, `c2_M1L`, `c2_M1L1R`, `c2_M2R`; 10 tumours total: one `20 Gy` irradiated + one `0 Gy` contralateral control per mouse) across **4 imaging dates**:
      - `Day -15` (`2010-11-18`): Untreated early-growth baseline scan (integrated for early growth-rate validation).

@@ -450,8 +450,8 @@ def render_three_panel_comparison(
 def main() -> None:
     root = Path("/workspace")
     set1_dir = root / "images" / "set1"
-    out_dir = root / "outputs" / "set1"
-    notes_dir = root / "agent_notes"
+    out_dir = root / "outputs" / "prelim_work" / "set1"
+    notes_dir = root / "agent_notes" / "data_curation"
     out_dir.mkdir(parents=True, exist_ok=True)
     notes_dir.mkdir(parents=True, exist_ok=True)
 

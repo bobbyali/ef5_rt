@@ -156,7 +156,7 @@ def render_full_bed_overview(
 def main() -> None:
     root = Path("/workspace")
     set2_dir = root / "images" / "set2"
-    out_set2 = root / "outputs" / "set2"
+    out_set2 = root / "outputs" / "prelim_work" / "set2"
     cropped_root = out_set2 / "cropped_mice"
     slices_root = out_set2 / "mice_slices"
     out_set2.mkdir(parents=True, exist_ok=True)

@@ -1,9 +1,23 @@
-# Dataset images and generated outputs (excluded from version control)
+# Dataset images and generated outputs (excluded from version control by default;
+# lightweight PNG figures, CSV summaries, and markdown reports under first_ef5_rt_study/
+# and ef5_rt_model/ are explicitly tracked while NIfTIs, .npz bundles, DICOMs, & prelim_work stay local)
 images/
 outputs/*
 !outputs/ef5_rt_model/
 outputs/ef5_rt_model/*
 !outputs/ef5_rt_model/reports/
+!outputs/ef5_rt_model/spheroid/
+!outputs/ef5_rt_model/voxel/
+outputs/ef5_rt_model/voxel/*
+!outputs/ef5_rt_model/voxel/figures/
+!outputs/first_ef5_rt_study/
+outputs/first_ef5_rt_study/*
+!outputs/first_ef5_rt_study/montages/
+!outputs/first_ef5_rt_study/tables/
+!outputs/first_ef5_rt_study/cropped_mice/
+outputs/first_ef5_rt_study/cropped_mice/**
+!outputs/first_ef5_rt_study/cropped_mice/**/
+!outputs/first_ef5_rt_study/cropped_mice/**/*.png
 
 # Defensive exclusions for large binary imaging / voxel / raw scanner files
 *.dcm
