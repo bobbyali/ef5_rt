@@ -17,6 +17,7 @@ import pandas as pd
 import pydicom
 from pydicom.dataset import Dataset, FileMetaDataset
 from pydicom.uid import ImplicitVRLittleEndian, generate_uid
+from scipy.ndimage import affine_transform
 from skimage.draw import polygon
 
 
@@ -61,17 +62,43 @@ class RTImageVolume:
         """Physical Z coordinates (mm) for row indices j = 0 .. ny-1 (decreasing Z)."""
         return self.origin[2] - np.arange(self.shape[1]) * self.spacing[1]
 
+    @property
+    def is_axis_aligned(self) -> bool:
+        """True if orientation matches standard RT_Image canonical axes [[-1,0,0],[0,0,-1]]."""
+        canonical = np.array([[-1.0, 0.0, 0.0], [0.0, 0.0, -1.0]], dtype=np.float64)
+        return bool(np.allclose(self.orientation, canonical, atol=1e-4))
+
+    @property
+    def slice_normal(self) -> np.ndarray:
+        """Unit vector along plane axis k (axis 0). Equals [0, -1, 0] for canonical orientation."""
+        r = self.orientation[0]
+        c = self.orientation[1]
+        s = np.cross(r, c)
+        norm = np.linalg.norm(s)
+        return s / norm if norm > 0 else np.array([0.0, -1.0, 0.0], dtype=np.float64)
+
     def world_to_voxel(self, xyz: np.ndarray) -> np.ndarray:
         """
         Maps physical (x, y, z) coordinates in mm (shape (..., 3))
         to continuous voxel indices (k, j, i) = (plane, row, col).
+        Supports both canonical [[-1,0,0],[0,0,-1]] and rotated ImageOrientationPatient volumes.
         """
         xyz = np.asarray(xyz, dtype=np.float64)
         dz, dy, dx = self.spacing
-        ox, oy, oz = self.origin
-        i = (ox - xyz[..., 0]) / dx
-        k = (oy - xyz[..., 1]) / dz
-        j = (oz - xyz[..., 2]) / dy
+        if self.is_axis_aligned:
+            ox, oy, oz = self.origin
+            i = (ox - xyz[..., 0]) / dx
+            k = (oy - xyz[..., 1]) / dz
+            j = (oz - xyz[..., 2]) / dy
+            return np.stack([k, j, i], axis=-1)
+
+        delta = xyz - self.origin
+        r = self.orientation[0]
+        c = self.orientation[1]
+        s = self.slice_normal
+        i = np.tensordot(delta, r, axes=([-1], [0])) / dx
+        j = np.tensordot(delta, c, axes=([-1], [0])) / dy
+        k = np.tensordot(delta, s, axes=([-1], [0])) / dz
         return np.stack([k, j, i], axis=-1)
 
 
@@ -565,50 +592,151 @@ def build_roi_3d_mask(vol: RTImageVolume, roi: RTRoi) -> np.ndarray:
     return mask
 
 
-def crop_volume_to_body_roi(vol: RTImageVolume, body_roi: RTRoi) -> RTImageVolume:
+def crop_volume_to_body_roi(
+    vol: RTImageVolume,
+    body_roi: RTRoi,
+    ref_pet_vol: Optional[RTImageVolume] = None,
+    target_spacing: Optional[Tuple[float, float, float]] = None,
+    extra_rois: Optional[Sequence[RTRoi]] = None,
+    pad_mm: float = 0.0,
+) -> RTImageVolume:
     """
-    Crops a 3D RTImageVolume to the exact voxel bounding box of a rectangular `body_roi`
-    (such as Set 2's 'c8 M0 body', 'c8 M1R body', 'c8 M1L body', 'c8 M1L1R body'),
+    Crops a 3D RTImageVolume to the bounding box of a rectangular `body_roi`
+    (optionally expanded to guarantee full inclusion of `extra_rois` plus `pad_mm`),
     updating `origin` ([ox, oy, oz]) so that all physical ROI coordinates remain 100% aligned.
+
+    If `vol` has a rotated `ImageOrientationPatient` (e.g., rigidly registered microCTs in Set 3)
+    or `target_spacing` is specified, resamples the cropped sub-volume onto the canonical
+    axis-aligned grid (`orientation = [[-1, 0, 0], [0, 0, -1]]`) via linear interpolation.
     """
-    mask = build_roi_3d_mask(vol, body_roi)
-    ks, js, iis = np.where(mask)
-    if len(ks) == 0:
-        raise ValueError(f"Body ROI '{body_roi.name}' does not intersect volume {vol.path}")
+    if vol.is_axis_aligned and target_spacing is None:
+        mask = build_roi_3d_mask(vol, body_roi)
+        if extra_rois:
+            for r in extra_rois:
+                mask |= build_roi_3d_mask(vol, r)
+        ks, js, iis = np.where(mask)
+        if len(ks) == 0:
+            raise ValueError(f"Body ROI '{body_roi.name}' does not intersect volume {vol.path}")
 
-    k_min, k_max = int(ks.min()), int(ks.max())
-    j_min, j_max = int(js.min()), int(js.max())
-    i_min, i_max = int(iis.min()), int(iis.max())
+        dz, dy, dx = vol.spacing
+        nz, ny, nx = vol.shape
+        pad_k = int(np.ceil(pad_mm / dz)) if pad_mm > 0 else 0
+        pad_j = int(np.ceil(pad_mm / dy)) if pad_mm > 0 else 0
+        pad_i = int(np.ceil(pad_mm / dx)) if pad_mm > 0 else 0
 
-    dz, dy, dx = vol.spacing
-    ox, oy, oz = vol.origin
+        k_min = max(0, int(ks.min()) - pad_k)
+        k_max = min(nz - 1, int(ks.max()) + pad_k)
+        j_min = max(0, int(js.min()) - pad_j)
+        j_max = min(ny - 1, int(js.max()) + pad_j)
+        i_min = max(0, int(iis.min()) - pad_i)
+        i_max = min(nx - 1, int(iis.max()) + pad_i)
 
-    new_origin = np.array(
+        ox, oy, oz = vol.origin
+
+        new_origin = np.array(
+            [
+                ox - i_min * dx,
+                oy - k_min * dz,
+                oz - j_min * dy,
+            ],
+            dtype=np.float64,
+        )
+
+        cropped_data = np.asarray(
+            vol.data[k_min : k_max + 1, j_min : j_max + 1, i_min : i_max + 1],
+            dtype=np.float32,
+        ).copy()
+
+        return RTImageVolume(
+            path=vol.path,
+            modality=vol.modality,
+            units=vol.units,
+            study_date=vol.study_date,
+            shape=cropped_data.shape,
+            spacing=vol.spacing,
+            origin=new_origin,
+            orientation=vol.orientation.copy(),
+            rescale_slope=vol.rescale_slope,
+            rescale_intercept=vol.rescale_intercept,
+            data=cropped_data,
+            raw_ds=None,
+        )
+
+    # Resample rotated (or target_spacing) volume onto canonical axis-aligned bounding box
+    all_rois_for_box = [body_roi] + (list(extra_rois) if extra_rois else [])
+    bmins = [r.bounds_mm[0] for r in all_rois_for_box if len(r.all_vertices) > 0]
+    bmaxs = [r.bounds_mm[1] for r in all_rois_for_box if len(r.all_vertices) > 0]
+    x_min = min(float(b[0]) for b in bmins) - pad_mm
+    x_max = max(float(b[0]) for b in bmaxs) + pad_mm
+    z_min = min(float(b[2]) for b in bmins) - pad_mm
+    z_max = max(float(b[2]) for b in bmaxs) + pad_mm
+
+    # Determine physical Y bounds from body_roi contour thickness (and intersect with ref_pet_vol if given)
+    y_mins, y_maxs = [], []
+    for c in body_roi.contours:
+        y_mins.append(float(c.center[1] - c.thickness / 2.0))
+        y_maxs.append(float(c.center[1] + c.thickness / 2.0))
+    y_min = min(y_mins) if y_mins else min(float(b[1]) for b in bmins)
+    y_max = max(y_maxs) if y_maxs else max(float(b[1]) for b in bmaxs)
+    if ref_pet_vol is not None:
+        y_min = max(y_min, float(ref_pet_vol.y_coords.min()))
+        y_max = min(y_max, float(ref_pet_vol.y_coords.max()))
+
+    out_dz, out_dy, out_dx = target_spacing if target_spacing is not None else vol.spacing
+    nx_out = max(1, int(np.floor((x_max - x_min) / out_dx)) + 1)
+    ny_out = max(1, int(np.floor((z_max - z_min) / out_dy)) + 1)
+    nz_out = max(1, int(np.floor((y_max - y_min) / out_dz)) + 1)
+
+    # Canonical output grid: world(k, j, i) = new_origin + [-i*out_dx, -k*out_dz, -j*out_dy]
+    new_origin = np.array([x_max, y_max, z_max], dtype=np.float64)
+
+    # Source world_to_voxel(p) = M_s @ (p - o_s), where rows of M_s are [s/dz_s, c/dy_s, r/dx_s]
+    src_dz, src_dy, src_dx = vol.spacing
+    r = vol.orientation[0]
+    c = vol.orientation[1]
+    s = vol.slice_normal
+    M_s = np.vstack([s / src_dz, c / src_dy, r / src_dx])  # (3, 3)
+
+    # Canonical output voxel (k, j, i) -> world delta: A_out @ [k, j, i]^T
+    # x = ox - i*out_dx, y = oy - k*out_dz, z = oz - j*out_dy
+    A_out = np.array(
         [
-            ox - i_min * dx,
-            oy - k_min * dz,
-            oz - j_min * dy,
+            [0.0, 0.0, -out_dx],
+            [-out_dz, 0.0, 0.0],
+            [0.0, -out_dy, 0.0],
         ],
         dtype=np.float64,
     )
+    matrix = M_s @ A_out
+    offset = M_s @ (new_origin - vol.origin)
 
-    cropped_data = np.asarray(
-        vol.data[k_min : k_max + 1, j_min : j_max + 1, i_min : i_max + 1],
-        dtype=np.float32,
-    ).copy()
+    if vol.modality == "CT":
+        sample_med = float(np.median(vol.data[::8, ::8, ::8]))
+        cval = -1000.0 if sample_med < -200.0 else 0.0
+    else:
+        cval = 0.0
+    resampled = affine_transform(
+        np.asarray(vol.data, dtype=np.float32),
+        matrix=matrix,
+        offset=offset,
+        output_shape=(nz_out, ny_out, nx_out),
+        order=1,
+        mode="constant",
+        cval=cval,
+    ).astype(np.float32)
 
     return RTImageVolume(
         path=vol.path,
         modality=vol.modality,
         units=vol.units,
         study_date=vol.study_date,
-        shape=cropped_data.shape,
-        spacing=vol.spacing,
+        shape=resampled.shape,
+        spacing=(out_dz, out_dy, out_dx),
         origin=new_origin,
-        orientation=vol.orientation.copy(),
-        rescale_slope=vol.rescale_slope,
-        rescale_intercept=vol.rescale_intercept,
-        data=cropped_data,
+        orientation=np.array([[-1.0, 0.0, 0.0], [0.0, 0.0, -1.0]], dtype=np.float64),
+        rescale_slope=1.0,
+        rescale_intercept=0.0,
+        data=resampled,
         raw_ds=None,
     )
 

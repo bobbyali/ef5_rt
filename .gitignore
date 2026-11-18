@@ -2,6 +2,18 @@
 images/
 outputs/
 
+# Defensive exclusions for large binary imaging / voxel / raw scanner files
+*.dcm
+*.DCM
+*.img
+*.lst
+*.scn
+*.sav
+*.npz
+*.npy
+*.roi
+*.ROI
+
 # Python / Jupyter artifacts
 __pycache__/
 *.py[cod]
@@ -14,5 +26,6 @@ venv/
 
 # OS / Editor metadata
 .DS_Store
+._*
 Thumbs.db
 *:AFP_Resource
