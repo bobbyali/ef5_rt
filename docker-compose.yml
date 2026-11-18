@@ -1,0 +1,12 @@
+services:
+  ef5:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ef5-analysis:latest
+    container_name: ef5-analysis
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    ports:
+      - "8888:8888"

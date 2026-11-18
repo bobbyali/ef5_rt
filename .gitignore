@@ -1,0 +1,18 @@
+# Dataset images and generated outputs (excluded from version control)
+images/
+outputs/
+
+# Python / Jupyter artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# OS / Editor metadata
+.DS_Store
+Thumbs.db
+*:AFP_Resource
