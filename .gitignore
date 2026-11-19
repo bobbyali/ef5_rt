@@ -18,6 +18,14 @@ outputs/first_ef5_rt_study/*
 outputs/first_ef5_rt_study/cropped_mice/**
 !outputs/first_ef5_rt_study/cropped_mice/**/
 !outputs/first_ef5_rt_study/cropped_mice/**/*.png
+!outputs/second_ef5_rt_study/
+outputs/second_ef5_rt_study/*
+!outputs/second_ef5_rt_study/bed_overviews/
+!outputs/second_ef5_rt_study/tables/
+!outputs/second_ef5_rt_study/cropped_mice/
+outputs/second_ef5_rt_study/cropped_mice/**
+!outputs/second_ef5_rt_study/cropped_mice/**/
+!outputs/second_ef5_rt_study/cropped_mice/**/*.png
 
 # Defensive exclusions for large binary imaging / voxel / raw scanner files
 *.dcm

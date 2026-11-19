@@ -20,7 +20,8 @@ Python + Docker scientific toolkit for:
 │   ├── process_set2.py                 # Set 2 (4-mouse bed) verification, body-ROI cropping, & per-mouse slicing
 │   ├── inspect_set3_rois.py            # Diagnostic inspector for First EF5 RT Study raw .ROI structures
 │   ├── inspect_study_records.py        # Audit script reconciling scanner logs, Excel sheets, & caliper tables
-│   ├── process_first_ef5_rt_study.py   # End-to-end curation pipeline -> CSVs, .npz voxel bundles, & RAS+ NIfTIs
+│   ├── process_first_ef5_rt_study.py   # First EF5 RT Study curation -> CSVs, .npz voxel bundles, & RAS+ NIfTIs
+│   ├── process_second_ef5_rt_study.py  # Second EF5 RT Study (40-mouse PLOS ONE) curation -> CSVs, .npz, & NIfTIs
 │   └── modeling/
 │       ├── physics.py                  # Shared biophysics: AHF OER, LQ survival, Darcy/stress saturation, EF5 PET
 │       ├── legacy_spheroid.py          # 2013 MATLAB ODE audit, Alex Fletcher CodeForBobby port, Byrne Greenspan
@@ -34,9 +35,11 @@ Python + Docker scientific toolkit for:
 │   └── test_modeling.py                # Automated physics, Byrne analytical, conservation & regression tests (8/8)
 ├── results/
 │   ├── first_ef5_rt_study/             # Reconciled CSV tables (calipers, imaging stats, ID map, timeline, audit)
+│   ├── second_ef5_rt_study/            # Second EF5 RT Study (40-mouse PLOS ONE) CSV tables & forensic audit
 │   └── ef5_rt_model/                   # Tabular 1D & 3D simulation vs real-data validation summaries
 ├── outputs/
 │   ├── first_ef5_rt_study/             # Tracked longitudinal montages, per-scan QC PNGs, & CSV tables
+│   ├── second_ef5_rt_study/            # Tracked 10 bed overviews, 39 per-mouse QC PNGs, & CSV tables
 │   ├── ef5_rt_model/                   # Tracked 1D/3D figures & visual comparison report (NIfTIs excluded)
 │   └── prelim_work/                    # Local Set 1 & Set 2 exploratory slice outputs (gitignored)
 ├── notebooks/
@@ -70,6 +73,9 @@ docker compose run --rm ef5 python -m src.process_set2
 
 # First EF5 RT Study: reconcile longitudinal PET/CT + calipers -> CSVs, .npz bundles & RAS+ NIfTIs
 docker compose run --rm ef5 python -m src.process_first_ef5_rt_study
+
+# Second EF5 RT Study (40-mouse PLOS ONE cohort): crop 10 Inveon beds -> 39 mice, 11 caliper dates, .npz & RAS+ NIfTIs
+docker compose run --rm ef5 python -m src.process_second_ef5_rt_study
 ```
 
 ### 3. Mathematical Modelling, Report Generation & Verification
@@ -116,7 +122,13 @@ docker compose run --rm ef5 python -m src.modeling.generate_visual_report
    - **Standardised 3D modelling bundles** (local under `outputs/first_ef5_rt_study/`):
      - Compressed `.npz` voxel bundles (`pet_idg`, `pet_tm`, `ct_on_pet_grid`, PET & CT tumour masks, physical coordinate axes)
      - Verified **RAS+ NIfTI (`.nii.gz`)** exports for 3D Slicer / ITK-SNAP inspection.
-3. **Past Postdoc Modelling Archive (`images/set4/past_work/`)**:
+3. **Second EF5 RT Study — 40-Mouse (80-Tumour) PLOS ONE Cohort (`src/process_second_ef5_rt_study.py`)**:
+   - Curated and reconciled **40 bilateral A549 mice** (`c1_M1R` .. `c8_M0`; 80 tumours across 8 regimens: `1x10 Gy`, `1x20 Gy`, `1x40 Gy`, `0 Gy Control`, `2x5 Gy`, `2x10 Gy`, `4x5 Gy`, `4x10 Gy`), published in [Ali et al., PLOS ONE 2015](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0139425):
+     - **Pre-RT EF5 PET/CT (`10 Inveon 4-mouse beds`)**: 39 imaged mice across `Day 1 Set 1..5` (`i100117`, `2011-06-01`) and `Day 2 Set 1..5` (`i100118`, `2011-06-02`) cropped into standalone per-mouse `.dcm`, `.ROI`, `.npz` voxel bundles, and RAS+ `.nii.gz` NIfTI volumes (with both full-bed CT/combination tumour masks and PET-hotspot sub-ROI masks).
+     - **11 Longitudinal Caliper Timepoints (`Day 23` to `Day 99`)**: Full reconciliation of 4 pre-RT and 7 post-RT caliper measurement dates (`2011-05-11` through `2011-07-26`), resolving the historical Mac-1904/Windows-1900 Excel date offset, proving correct Left (`LHS`) vs. Right (`RHS`) physical coordinate pairing ($r = 0.770$ vs. swapped $r = 0.236$), and documenting the 4-day fractionation gap (`2011-06-03` to `2011-06-07`) caused by the missing lead shield.
+   - **Reconciled outputs** tracked in `results/second_ef5_rt_study/` and `outputs/second_ef5_rt_study/`:
+     - `mouse_id_mapping.csv`, `imaging_summary.csv`, `caliper_growth_curves.csv`, `tumour_master_wide.csv`, `study_timeline.csv`, `data_audit_notes.md`, 10 bed overview PNGs, and 39 per-mouse QC PNGs.
+4. **Past Postdoc Modelling Archive (`images/set4/past_work/`)**:
    - Curated `rsync` archive (117 files, macOS metadata excluded) of historical 2013 Stanford MATLAB ODEs, Dr. Alex Fletcher's notes & `CodeForBobby.m`, Prof. Helen Byrne's PCMI lecture notes (`pcmi_proofs.pdf`), legacy A549 `7 Gy` data (`rt_data_a549.mat`), and original PLOS ONE comparison figures.
 
 ---

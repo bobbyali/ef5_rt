@@ -1,0 +1,18 @@
+date,days_post_injection,days_post_rt_nominal,event,audit_note
+2011-04-18,0,-46,Injected 1x10^6 A549 cells s.c. into bilateral shoulder flanks of 40 Balb/c nude mice (8 cages x 5 mice = 80 tumours).,
+2011-05-11,23,-23,"Caliper measurement #1 (orthogonal x, y, z axes in mm).",Excel serial date offset by 1904/1900 system fixed to 2011-05-11.
+2011-05-18,30,-16,"Caliper measurement #2 (orthogonal x, y, z axes in mm).",
+2011-05-23,35,-11,"Caliper measurement #3 (orthogonal x, y, z axes in mm; cross-checked by Nicole). Scheduled [18F]-EF5 synthesis failed (May 23-25).",Imaging postponed 1 week due to cyclotron/HPLC synthesis failures.
+2011-05-30,42,-4,Memorial Day holiday (cyclotron not run); May 31 synthesis failed.,
+2011-05-31,43,-3,"Caliper measurement #4 (Pre-treatment baseline, avg largest diameter ~9 mm).",Used as t=0 pre-treatment volume normalization baseline.
+2011-06-01,44,-2,"[18F]-EF5 PET/CT Imaging Day 1 (i100117, 5 beds: Day 1 Set 1..5, 19 mice from Cages 1-4; 200 uCi IV tail vein, 10 min static PET + CT).",Mouse c4_M1R not imaged (no visible signal).
+2011-06-02,45,-1,"[18F]-EF5 PET/CT Imaging Day 2 (i100118, 5 beds: Day 2 Set 1..5, 20 mice from Cages 5-8). Single-fraction RT delivered to Cages 1 (1x10 Gy), 2 (1x20 Gy), and 3 (1x40 Gy) via Philips RT-250.",Exact PET scan timestamps verified from i100118 .pet.img.hdr.
+2011-06-03,46,0,"Fraction #1 of fractionated RT delivered to Cages 5 (2x5 Gy), 6 (2x10 Gy), 7 (4x5 Gy), and 8 (4x10 Gy); Cage 4 left unirradiated (0 Gy control).",Lead shield went missing over the weekend (June 4-6).
+2011-06-06,49,3,Caliper measurement #5 (3-4 days post-RT start).,
+2011-06-07,50,4,Replacement lead shield found; remaining fractions delivered starting June 7 (Fraction #2 for Cages 5-6; Fractions #2-#4 for Cages 7-8).,Resulted in a 4-day gap between Fraction #1 and Fraction #2.
+2011-06-13,56,10,Caliper measurement #6 (10-11 days post-RT).,
+2011-06-21,64,18,Caliper measurement #7 (18-19 days post-RT).,
+2011-06-30,73,27,Caliper measurement #8 (27-28 days post-RT; final timepoint in Vols w new metric vs PET.xlsx / PLOS ONE plots).,
+2011-07-06,79,33,Caliper measurement #9 (33-34 days post-RT; reported as 32d/33d post-tx in Technical Report & Tumor Sizes - v4.xlsb).,
+2011-07-20,84,37,Caliper measurement #10 and tumor excision / blue vs. pink vascular appearance audit by Khalila (10 Khalila EF5Tumors.20.07.11.xlsx).,Labeled Day 84 (+37d post-RT) in Tumor Sizes - v4.xlsb.
+2011-07-26,99,53,Caliper measurement #11 (final endpoint measurement for surviving mice; labeled Day 99 / +52d/+53d post-RT in Tumor Sizes - v4.xlsb).,
