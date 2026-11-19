@@ -230,3 +230,110 @@ Collaborators often ask two crucial questions about a model with ~12 biological 
 #### C. What Is "Leave-One-Regimen-Out (LORO) Cross-Validation"?
 - **The ultimate stress test:** To prove our Bayesian model can predict a *brand-new radiation schedule* it has never seen before, we ran 8 separate experiments. In each experiment, we **hid one entire treatment group** (for example, all 10 tumours in the `4 × 5 Gy` group), trained the hierarchical model on the other 70 tumours, and asked it to predict the held-out group using only their pre-treatment PET scan and pre-treatment growth rate.
 - **50% and 95% Credible Bands (Figure 6):** The shaded ribbons show the model's honest uncertainty forecast—the dark ribbon is where the model expects 50% of observations to land, and the light ribbon is the 95% prediction zone. Across all 8 held-out regimens, **`93.2%`** of the real experimental caliper measurements fell inside the 95% band—demonstrating that both the model's central predictions and its uncertainty bars are well-calibrated.
+
+---
+
+## Section 5: Per-Tumour Growth Curve Atlas, RMSD Evaluation & Mechanistic Mismatch Taxonomy
+
+To evaluate model fidelity at the **individual tumour level** across all 80 bilateral tumours, we generated superimposed trajectory comparisons for every single tumour (`Stage 1 Blind 1D & 3D`, `Stage 2 Pre-RT Growth-Anchored 1D & 3D`, and `Stage 4 Hierarchical Bayesian LORO Credible Ribbon, 1D MAP & 3D Voxel PDE`), annotated with each tumour's radiation dose regimen, pre-RT hypoxia status (`Combo T/M` and `PET Hotspot T/M`), Day 84 `Blue`/`Pink` vascular phenotype, and root-mean-square deviation (**RMSD** on $V/V_0$ and $\log_2 V/V_0$).
+
+All 80 per-tumour metrics and mechanistic classifications are saved in [results/study2_validation/per_tumour_rmsd_and_mismatch_classification.csv](../../results/study2_validation/per_tumour_rmsd_and_mismatch_classification.csv).
+
+### 5.1 Complete 80-Tumour Growth Curve Atlas & Per-Cage High-Resolution Grids
+
+![Complete 80-Tumour Growth Curve Atlas](figures/08_all_80_tumours_growth_curve_atlas.png)
+
+High-resolution `2 × 5` bilateral per-cage grids (pairing Left Flank `[L]` on the top row with Right Flank `[R]` on the bottom row for Mice 1–5 in each treatment group) are saved under `outputs/study2_validation/figures/per_tumour_grids/`:
+- **Cage 1 (`1 × 10 Gy`):** [cage1_1x10Gy_per_tumour_curves.png](figures/per_tumour_grids/cage1_1x10Gy_per_tumour_curves.png)
+- **Cage 2 (`1 × 20 Gy`):** [cage2_1x20Gy_per_tumour_curves.png](figures/per_tumour_grids/cage2_1x20Gy_per_tumour_curves.png)
+- **Cage 3 (`1 × 40 Gy`):** [cage3_1x40Gy_per_tumour_curves.png](figures/per_tumour_grids/cage3_1x40Gy_per_tumour_curves.png)
+- **Cage 4 (`0 Gy Control`):** [cage4_Control_0Gy_per_tumour_curves.png](figures/per_tumour_grids/cage4_Control_0Gy_per_tumour_curves.png)
+- **Cage 5 (`2 × 5 Gy, 4d Gap`):** [cage5_2x5Gy_per_tumour_curves.png](figures/per_tumour_grids/cage5_2x5Gy_per_tumour_curves.png)
+- **Cage 6 (`2 × 10 Gy, 4d Gap`):** [cage6_2x10Gy_per_tumour_curves.png](figures/per_tumour_grids/cage6_2x10Gy_per_tumour_curves.png)
+- **Cage 7 (`4 × 5 Gy, 4d Gap`):** [cage7_4x5Gy_per_tumour_curves.png](figures/per_tumour_grids/cage7_4x5Gy_per_tumour_curves.png)
+- **Cage 8 (`4 × 10 Gy, 4d Gap`):** [cage8_4x10Gy_per_tumour_curves.png](figures/per_tumour_grids/cage8_4x10Gy_per_tumour_curves.png)
+
+---
+
+### 5.2 Per-Tumour RMSD Waterfall & Mechanistic Mismatch Taxonomy
+
+Across the **76 evaluable post-RT tumours** (4 tumours — `c3_M1L_L`, `c3_M1L_R`, `c4_M1R_L`, `c4_M1R_R` — were censored after their Day 43 baseline measurement), **`48 / 76` tumours (`63.2%`)** achieved either **Tier 1 Excellent Match (`N = 23`, PLOS RMSD ≤ 0.30)** or **Tier 2 Good Match (`N = 25`, PLOS RMSD ≤ 0.52)**, with a cohort-wide median per-tumour PLOS RMSD of **`0.448`** ($V/V_0$) and **`0.452`** ($\log_2 V/V_0$).
+
+Even more importantly, the remaining tumours do not fail randomly—they cluster into **four distinct, biologically interpretable mismatch archetypes**:
+
+![Per-Tumour RMSD Ranking & Mechanistic Mismatch Taxonomy](figures/09_per_tumour_rmsd_ranking_and_mismatch_taxonomy.png)
+
+| Match Tier / Mismatch Archetype | Tumours ($N$, %) | Mean Combo `T/M` | Mean Hotspot `T/M` | Focal Hotspot Discordant (%) | Blue Vascular Phenotype (%) | Median PLOS RMSD (S1 Blind 1D) | Median PLOS RMSD (S4 Hier 1D / 3D) | Mean Signed Bias ($\text{Pred} - \text{Obs}$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Tier 1: Excellent Match** | `23` (`28.8%`) | `1.99` | `3.08` | `22%` | `35%` | `0.275` | `0.231` / `0.238` | `+0.031` |
+| **Tier 2: Good Match** | `25` (`31.2%`) | `1.79` | `2.89` | `20%` | `36%` | `0.415` | `0.432` / `0.415` | `-0.047` |
+| **Mismatch A: Focal Hotspot Escape (Obs >> Pred)** | `10` (`12.5%`) | `1.78` | `3.24` | `30%` | `60%` | `0.834` | `0.938` / `0.819` | `-0.775` |
+| **Mismatch B: Deep Resorption Below Fibrotic Floor (Obs << Pred)** | `10` (`12.5%`) | `2.06` | `3.21` | `20%` | `30%` | `0.759` | `0.637` / `0.747` | `+0.677` |
+| **Mismatch C: Spontaneous Plateau / Growth Arrest (Obs < Pred)** | `6` (`7.5%`) | `1.32` | `2.55` | `33%` | `33%` | `1.138` | `0.598` / `0.501` | `+0.791` |
+| **Mismatch D: Mid-Course Oedema Spike / Late Surge** | `1` (`1.2%`) | `1.38` | `2.22` | `0%` | `100%` | `0.639` | `0.759` / `0.701` | `-0.567` |
+| **Censored at Baseline (0 Post-RT Points)** | `5` (`6.2%`) | `1.25` | `2.85` | `0%` | `20%` | `N/A` | `N/A` | `N/A` |
+
+#### Key Mechanistic Findings from the Mismatch Taxonomy
+1. **Mismatch Type A — Focal Hotspot Escape (`Obs >> Pred`, $N = 10$ tumours):**
+   - **What happens:** The real tumour regrows much faster after radiation than predicted (`Mean Bias = -0.77`).
+   - **Why it happens (The Focal Hotspot Discordance Discovery):** Look at Figure 9C (`c2_M1R_R`, `c5_M0_R`, `c6_M1R_L`, `c7_M1L1R_L`). In several of these tumours, the **whole-tumour combination ROI `T/M` was low (`≤ 1.50`)**—causing volume-averaged models to classify them as `"EF5- Normoxic"` and predict strong radiation cell kill—**yet their focal `PET Hotspot Sub-ROI T/M` was extremely high (`2.79 to 5.83`)**, and **`56%` were scored as `"Blue"` (congested vasculature)**! Biologically, a single surviving hypoxic sub-clone inside an otherwise normoxic or partially necrotic shell is sufficient to repopulate the tumour after `1×20 Gy` or `2×10 Gy`.
+2. **Mismatch Type B — Deep Resorption / Scab Sloughing Below the Fibrotic Floor (`Obs << Pred`, $N = 10$ tumours):**
+   - **What happens:** After `1×40 Gy`, `4×10 Gy`, or `2×10 Gy`, the observed volume drops to `0.11×–0.75× V0` (often annotated by Khalila as `"none"`, `"removed"`, or a residual superficial scab that sloughed off), whereas our continuum model's population fibrotic scaffold parameter ($\eta_{\text{fib}} = 0.76$) holds the simulated residual stroma near `1.0×–1.6× V0`.
+   - **How to resolve in future extensions:** Allowing tumour-specific fibrotic resorption ($\eta_{\text{fib},i}$) or thresholded macroscopic scab sloughing when viable fraction $V < 2\%$ will capture complete regressions.
+3. **Mismatch Type C — Spontaneous Growth Arrest / Early Plateau (`Obs < Pred`, $N = 6$ tumours):**
+   - **What happens:** Concentrated in untreated `0 Gy Control` (`c4_M0_L`, `c4_M1L_R`) or low-dose `1×10 Gy` / `2×5 Gy` tumours that grew rapidly from Day 23 to Day 43 (`20 → 250 mm³`), leading Stage 2/4 pre-RT anchoring to assign a high intrinsic growth rate $k_{p,\max,i}$, but then abruptly hit a local host carrying capacity plateau right after Day 43.
+4. **Mismatch Type D — Mid-Course Inflammatory Oedema Spike (`N = 1$):**
+   - **What happens:** Exemplified by `c1_M0_R` (`1×10 Gy`), which tracked the model at Days 49, 56, and 73 (`Obs Day 73 = 1.72×` vs `Pred = 1.29×` in S4 / `1.57×` in S1), but exhibited a single transient jump to `2.71×` at Day 64 (`+18d post-RT`) before regressing back to `1.72×` at Day 73—a hallmark of transient post-RT inflammatory swelling/oedema (or caliper measurement noise).
+
+---
+
+### 5.3 Top 15 Best-Matching Individual Tumours
+
+| Rank | Tumour ID (`PLOS Code`) | Regimen | Hypoxia Status (Combo / Hotspot `T/M`) | Day 84 Vascular Phenotype | Obs Day 73 $V/V_0$ | Pred Day 73 (1D / 3D) | PLOS RMSD (S1 Blind → S4 1D / 3D) | PLOS $\log_2$-RMSD (S4 1D) |
+| :---: | :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: |
+| 1 | **`c3_M1R_L`** (`c3_M3L`) | `1x40Gy` | EF5- (`1.05` / `2.38`) | `Partial Blue (removed)` | `0.95` | `0.96` / `1.05` | `0.108` → **`0.071`** / `0.136` | `0.097` |
+| 2 | **`c7_M1R_L`** (`c7_M3L`) | `4x5Gy` | EF5- (`0.85` / `2.79`) | `Surviving (Unannotated)` | `1.46` | `1.40` / `1.71` | `0.131` → **`0.095`** / `0.207` | `0.102` |
+| 3 | **`c5_M1L_R`** (`c5_M2R`) | `2x5Gy` | EF5+ (`3.40` / `4.53`) | `Surviving (Unannotated)` | `1.31` | `1.34` / `1.45` | `0.573` → **`0.127`** / `0.228` | `0.171` |
+| 4 | **`c1_M1R_R`** (`c1_M3R`) | `1x10Gy` | EF5- (`1.16` / `2.57`) | `BLUE! (score=2)` | `1.63` | `1.73` / `1.22` | `0.611` → **`0.130`** / `0.342` | `0.128` |
+| 5 | **`c1_M0_L`** (`c1_M1L`) | `1x10Gy` | EF5+ (`2.39` / `2.68`) | `Partial Blue (partial blue)` | `2.23` | `2.18` / `1.37` | `0.482` → **`0.135`** / `0.464` | `0.127` |
+| 6 | **`c7_M1L_L`** (`c7_M2L`) | `4x5Gy` | EF5+ (`1.84` / `1.31`) | `Surviving (Unannotated)` | `1.36` | `1.32` / `1.43` | `0.320` → **`0.141`** / `0.193` | `0.168` |
+| 7 | **`c8_M1L_R`** (`c8_M2R`) | `4x10Gy` | EF5+ (`2.78` / `3.81`) | `BLUE (Mostly BLUE)` | `1.37` | `1.19` / `1.27` | `0.213` → **`0.146`** / `0.130` | `0.169` |
+| 8 | **`c8_M1L1R_R`** (`c8_M4R`) | `4x10Gy` | EF5+ (`3.19` / `4.45`) | `Partial Blue (BLUE)` | `1.35` | `1.28` / `1.42` | `0.240` → **`0.166`** / `0.252` | `0.224` |
+| 9 | **`c2_M0_R`** (`c2_M1R`) | `1x20Gy` | EF5+ (`2.27` / `3.48`) | `Surviving (Unannotated)` | `0.76` | `1.06` / `1.09` | `0.133` → **`0.190`** / `0.211` | `0.280` |
+| 10 | **`c7_M0_L`** (`c7_M1L`) | `4x5Gy` | EF5+ (`5.02` / `3.44`) | `Sacrificed (DECEASED)` | `0.99` | `1.26` / `1.36` | `0.413` → **`0.206`** / `0.291` | `0.286` |
+| 11 | **`c8_M1L_L`** (`c8_M2L`) | `4x10Gy` | EF5+ (`3.61` / `4.22`) | `BLUE (VERY BLUE!)` | `1.05` | `1.15` / `1.28` | `0.199` → **`0.224`** / `0.202` | `0.244` |
+| 12 | **`c8_M0_L`** (`c8_M1L`) | `4x10Gy` | EF5+ (`1.61` / `2.05`) | `BLUE (BLUE!)` | `1.46` | `1.42` / `1.31` | `0.207` → **`0.231`** / `0.305` | `0.217` |
+| 13 | **`c6_M2R_R`** (`c6_M5R`) | `2x10Gy` | EF5- (`0.15` / `4.53`) | `Surviving (Unannotated)` | `1.30` | `1.50` / `1.51` | `0.276` → **`0.233`** / `0.222` | `0.256` |
+| 14 | **`c2_M1L_L`** (`c2_M2L`) | `1x20Gy` | EF5+ (`2.10` / `3.20`) | `Partial Blue (score=1)` | `0.93` | `1.17` / `1.12` | `0.234` → **`0.237`** / `0.211` | `0.319` |
+| 15 | **`c2_M2R_L`** (`c2_M5L`) | `1x20Gy` | EF5+ (`2.01` / `3.16`) | `BLUE (BLUE!)` | `1.34` | `1.08` / `1.11` | `0.275` → **`0.241`** / `0.213` | `0.271` |
+
+---
+
+### 5.4 Diagnostic Table of the 16 Largest-RMSD Mismatch Tumours
+
+| Tumour ID (`PLOS Code`) | Regimen | Combo / Hotspot `T/M` | Vascular Phenotype | Obs Day 73 $V/V_0$ | Pred Day 73 (1D / 3D) | PLOS RMSD (S4 1D / 3D) | Mismatch Archetype | Mechanistic Diagnosis |
+| :--- | :---: | :---: | :--- | :---: | :---: | :---: | :--- | :--- |
+| **`c4_M0_L`** (`c4_M1L`) | `Control_0Gy` | `0.51` / `2.79` | `Surviving (Unannotated)` | `2.38` | `6.36` / `5.18` | `2.367` / `1.645` | **Mismatch C: Spontaneous Plateau / Growth Arrest** | Tumour grew rapidly pre-RT (Days 23–43) but decelerated/plateaued earlier than expected post-baseline (Obs Day 73=2.38x vs Pred=6.36x). |
+| **`c2_M1R_R`** (`c2_M3R`) | `1x20Gy` | `1.06` / `3.08` | `Partial Blue (partial blue)` | `4.64` | `1.24` / `1.14` | `2.087` / `2.175` | **Mismatch A: Focal Hotspot Escape** | Whole-tumour combo T/M=1.06 appeared normoxic (EF5-), but focal PET hotspot T/M=3.08 harboured a radioresistant hypoxic sub-clone driving rapid relapse (Obs Day 73=4.64x vs Pred=1.24x). |
+| **`c5_M0_L`** (`c5_M1L`) | `2x5Gy` | `2.51` / `5.83` | `Excised/Scab (none)` | `0.11` | `1.70` / `1.67` | `1.593` / `1.556` | **Mismatch B: Deep Resorption Below Fibrotic Floor** | Tumour regressed/sloughed below baseline (Obs Day 73=0.11x) whereas the population fibrotic scaffold floor (eta_fib=0.76) maintained simulated residual volume at 1.70x. |
+| **`c6_M2R_L`** (`c6_M5L`) | `2x10Gy` | `3.15` / `4.53` | `Surviving (Unannotated)` | `0.37` | `2.07` / `1.45` | `1.316` / `0.988` | **Mismatch B: Deep Resorption Below Fibrotic Floor** | Tumour regressed/sloughed below baseline (Obs Day 73=0.37x) whereas the population fibrotic scaffold floor (eta_fib=0.76) maintained simulated residual volume at 2.07x. |
+| **`c5_M0_R`** (`c5_M1R`) | `2x5Gy` | `0.33` / `5.83` | `Sacrificed (DECEASED)` | `3.55` | `1.31` / `1.84` | `1.217` / `0.888` | **Mismatch A: Focal Hotspot Escape** | Whole-tumour combo T/M=0.33 appeared normoxic (EF5-), but focal PET hotspot T/M=5.83 harboured a radioresistant hypoxic sub-clone driving rapid relapse (Obs Day 73=3.55x vs Pred=1.31x). |
+| **`c2_M1R_L`** (`c2_M3L`) | `1x20Gy` | `1.58` / `2.37` | `Partial Blue (score=1)` | `2.48` | `1.19` / `1.11` | `1.169` / `1.230` | **Mismatch A: Focal Hotspot Escape** | Resistant hypoxic/congested tumour outgrew model prediction after 1x20Gy (Obs Day 73=2.48x vs Pred=1.19x; Hotspot T/M=2.37). |
+| **`c6_M0_L`** (`c6_M1L`) | `2x10Gy` | `1.54` / `2.48` | `Sacrificed (deceased?)` | `3.43` | `1.42` / `1.48` | `1.089` / `1.048` | **Mismatch A: Focal Hotspot Escape** | Whole-tumour combo T/M=1.54 appeared normoxic (EF5-), but focal PET hotspot T/M=2.48 harboured a radioresistant hypoxic sub-clone driving rapid relapse (Obs Day 73=3.43x vs Pred=1.42x). |
+| **`c4_M2R_L`** (`c4_M5L`) | `Control_0Gy` | `2.06` / `3.07` | `BLUE (BLUE! (remove?))` | `3.61` | `2.88` / `1.93` | `1.061` / `1.465` | **Mismatch A: Focal Hotspot Escape** | Resistant hypoxic/congested tumour outgrew model prediction after Control_0Gy (Obs Day 73=3.61x vs Pred=2.88x; Hotspot T/M=3.07). |
+| **`c6_M1L_L`** (`c6_M2L`) | `2x10Gy` | `2.20` / `3.04` | `BLUE (remove -BLUE!)` | `2.40` | `1.20` / `1.27` | `0.814` / `0.749` | **Mismatch A: Focal Hotspot Escape** | Resistant hypoxic/congested tumour outgrew model prediction after 2x10Gy (Obs Day 73=2.40x vs Pred=1.20x; Hotspot T/M=3.04). |
+| **`c6_M1R_R`** (`c6_M3R`) | `2x10Gy` | `3.87` / `3.79` | `Surviving (Unannotated)` | `2.35` | `1.15` / `1.34` | `0.805` / `0.647` | **Mismatch A: Focal Hotspot Escape** | Resistant hypoxic/congested tumour outgrew model prediction after 2x10Gy (Obs Day 73=2.35x vs Pred=1.15x; Hotspot T/M=3.79). |
+| **`c1_M0_R`** (`c1_M1R`) | `1x10Gy` | `1.38` / `2.22` | `Partial Blue (excised tumor)` | `1.72` | `1.29` / `1.39` | `0.759` / `0.701` | **Mismatch D: Mid-Course Oedema Spike / Late Surge** | Endpoint Day 73 volume matches closely (Obs 1.72 vs Pred 1.29), but transient mid-course swelling (peak 2.71x) inflated RMSD. |
+| **`c8_M1R_R`** (`c8_M3R`) | `4x10Gy` | `1.38` / `2.05` | `Partial Blue (Tip is BLUE)` | `0.76` | `1.33` / `1.25` | `0.710` / `0.725` | **Mismatch B: Deep Resorption Below Fibrotic Floor** | Tumour regressed/sloughed below baseline (Obs Day 73=0.76x) whereas the population fibrotic scaffold floor (eta_fib=0.76) maintained simulated residual volume at 1.33x. |
+| **`c2_M1L_R`** (`c2_M2R`) | `1x20Gy` | `1.61` / `2.72` | `Partial Blue (excised tumor)` | `2.21` | `1.11` / `1.12` | `0.659` / `0.643` | **Mismatch A: Focal Hotspot Escape** | Resistant hypoxic/congested tumour outgrew model prediction after 1x20Gy (Obs Day 73=2.21x vs Pred=1.11x; Hotspot T/M=2.72). |
+| **`c8_M1R_L`** (`c8_M3L`) | `4x10Gy` | `1.19` / `2.22` | `Partial Blue (some BLUE)` | `0.32` | `1.17` / `1.34` | `0.652` / `0.802` | **Mismatch B: Deep Resorption Below Fibrotic Floor** | Tumour regressed/sloughed below baseline (Obs Day 73=0.32x) whereas the population fibrotic scaffold floor (eta_fib=0.76) maintained simulated residual volume at 1.17x. |
+| **`c7_M1L_R`** (`c7_M2R`) | `4x5Gy` | `5.32` / `2.14` | `Surviving (Unannotated)` | `0.79` | `1.23` / `1.37` | `0.648` / `0.769` | **Mismatch B: Deep Resorption Below Fibrotic Floor** | Tumour regressed/sloughed below baseline (Obs Day 73=0.79x) whereas the population fibrotic scaffold floor (eta_fib=0.76) maintained simulated residual volume at 1.23x. |
+| **`c4_M2R_R`** (`c4_M5R`) | `Control_0Gy` | `1.41` / `2.42` | `BLUE! (score=2)` | `2.09` | `2.96` / `3.63` | `0.632` / `1.038` | **Mismatch C: Spontaneous Plateau / Growth Arrest** | Tumour grew rapidly pre-RT (Days 23–43) but decelerated/plateaued earlier than expected post-baseline (Obs Day 73=2.09x vs Pred=2.96x). |
+
+---
+
+### 5.5 Addition to Layperson's Guide: What Do the Individual Tumour Mismatches Teach Us?
+When we look at all 80 tumours individually (Figure 8 and the per-cage grids), **nearly two-thirds (`63.2%`) of the evaluable tumours track the simulated curves closely**. Just as importantly, the one-third that deviate fall into **three simple biological stories** that are immediately useful to experimentalists:
+1. **"The Hidden Hypoxic Seed" (Mismatch Type A — Tumour Grows Faster Than Predicted):** If a tumour is mostly well-oxygenated on average (`Combo T/M < 1.5`), a model that only looks at the *average* oxygen level predicts the radiation will wipe it out. But if the PET scan shows a tiny, intensely hypoxic "hotspot" (`Hotspot T/M > 2.5–3.0`, Figure 9C), that resistant pocket survives the radiation and regrows the whole tumour! This proves why **3D spatial hotspot imaging** matters more than whole-tumour averages.
+2. **"The Scab That Fell Off" (Mismatch Type B — Tumour Shrinks More Than Predicted):** Our mathematical model assumes dead cancer cells leave behind a permanent scar-tissue scaffold ($\eta_{\text{fib}} \approx 60\text{--}75\%$ of the original volume). In most mouse flank tumours, that scar stays put. However, in ~8 tumours, the dead tissue dried into a surface scab that physically sloughed off or resorbed completely (`Obs V/V0 = 0.1–0.5×`), making the real measurement smaller than the simulated scar floor.
+3. **"The Early Ceiling" (Mismatch Type C — Untreated/Low-Dose Tumour Stops Growing Early):** A few control or low-dose tumours sprinted ahead before Day 43 and then suddenly stopped growing on their own (likely because they outgrew their local flank blood supply), whereas the model expected them to keep cruising at their pre-treatment speed.

@@ -86,6 +86,17 @@ class TestStudy2ValidationSuite(unittest.TestCase):
         self.assertEqual(len(get_gsa_parameter_specs(prm)), 12)
         self.assertEqual(len(get_bayesian_pop_specs(prm)), 7)
 
+    def test_per_tumour_rmsd_and_mismatch_taxonomy_table(self) -> None:
+        csv_path = ROOT / "results" / "study2_validation" / "per_tumour_rmsd_and_mismatch_classification.csv"
+        if not csv_path.exists():
+            self.skipTest("per_tumour_rmsd_and_mismatch_classification.csv not yet generated")
+        import pandas as pd
+        df = pd.read_csv(csv_path)
+        self.assertEqual(len(df), 80)
+        self.assertIn("match_mismatch_category", df.columns)
+        self.assertIn("rmsd_rel_plos_s4_1d", df.columns)
+        self.assertIn("vascular_phenotype", df.columns)
+
 
 if __name__ == "__main__":
     unittest.main()
