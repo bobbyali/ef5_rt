@@ -1,0 +1,4 @@
+stage,n_tumours,n_post_observations_full11,n_post_observations_plos,rmse_rel_plos,mae_rel_plos,rmse_log2_plos,pearson_r_rel_plos,pearson_r_log2_plos,rmse_rel_full11,mae_rel_full11,rmse_log2_full11,pearson_r_rel_full11,pearson_r_log2_full11,sgr_pearson_r,tt2x_pearson_r,responder_accuracy,responder_roc_auc
+Stage4_1D_Hierarchical_Bayesian_MAP,80,476,292,0.6528,0.4471,0.6763,0.3798,0.3447,1.1847,0.717,0.8616,0.4236,0.3892,0.3779,0.5821,0.7875,0.7328
+Stage4_1D_LORO_OutOfSample_CV,80,476,292,0.7259,0.47,0.6989,0.358,0.3179,1.3344,0.7697,0.9,0.4131,0.3609,0.3575,0.5654,0.7875,0.7143
+Stage4_3D_Voxel_Hierarchical_Bayesian_MAP,78,476,292,0.7028,0.4823,0.721,0.2544,0.2071,1.2906,0.7726,0.9175,0.2952,0.2702,0.3121,0.4489,0.7436,0.6675

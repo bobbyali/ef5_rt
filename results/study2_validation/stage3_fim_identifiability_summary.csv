@@ -1,0 +1,13 @@
+parameter,symbol,category,default_val,rms_sensitivity_study2,rms_sensitivity_20gy_only,fim_diag_study2,fim_diag_20gy_only,information_gain_ratio,relative_std_error_pct,strongest_collinear_partner,max_posterior_correlation,identifiability_tier,selected_for_stage4_bayesian
+kp_max,"$k_{p,\max}$",Growth & Stress,0.13,1.2431,1.4255,735.58,243.84,3.02,11.58,v_stress_cm3,-0.586,Tier 1: Strongly Identifiable on Study 2 Multi-Regimen Cohort,True
+v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.6002,0.6814,171.49,55.72,3.08,14.31,kp_max,-0.586,Tier 1: Strongly Identifiable on Study 2 Multi-Regimen Cohort,True
+k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.5059,0.4923,121.82,29.08,4.19,407.03,high_dose_lysis_boost,-0.96,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),False
+alpha,$\alpha$,Radiosensitivity,0.185,0.4584,0.3746,100.02,16.84,5.94,50.93,kp_max,0.501,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),True
+beta,$\beta$,Radiosensitivity,0.018,0.3439,0.4628,56.28,25.71,2.19,88.05,K_oer,0.869,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),True
+eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.3317,0.2804,52.37,9.43,5.55,307.31,vasc_damage_d50,-0.857,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),True
+vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,0.3184,0.2193,48.25,5.77,8.36,45.28,eta_fibrotic,-0.857,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),True
+oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,0.3046,0.4068,44.17,19.86,2.22,64.43,K_oer,-0.827,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),False
+K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,0.213,0.3025,21.59,10.98,1.97,188.63,beta,0.869,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),True
+high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.1769,0.1846,14.89,4.09,3.64,387.13,k_d1_to_d2,-0.96,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),False
+k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.15,0.1436,10.71,2.47,4.33,750.56,k_d1_to_d2,-0.725,Tier 2: Moderately Identifiable / Partially Collinear (Fix or Prior-Anchor),True
+q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.02,0.0035,0.19,0.0,132.98,357.8,high_dose_lysis_boost,0.434,Tier 3: Post-RT PET Observable Only (Freeze to Study 1 Prior),False

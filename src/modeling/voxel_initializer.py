@@ -106,15 +106,16 @@ def initialize_tumour_from_npz(
     dx_mm: float = 0.5,
     pad_mm: float = 8.0,
     dose_gy_override: Optional[float] = None,
+    tm_scale: float = 1.0,
 ) -> VoxelTumourInitialState:
     """
-    Initialises a 3D tumour simulation grid from a First EF5 RT Study `.npz` voxel bundle.
+    Initialises a 3D tumour simulation grid from a First or Second EF5 RT Study `.npz` voxel bundle.
 
     Parameters
     ----------
     npz_path : Path
         Path to `<mouse_id>_<timepoint>.npz`.
-    side : {"rt", "ctrl"}
+    side : {"rt", "ctrl", "lhs", "rhs", "l", "r"}
         Which tumour to extract from the bilateral mouse scan.
     params : RadiobiologyParams
         Shared radiobiology/oxygen parameters.
@@ -122,11 +123,19 @@ def initialize_tumour_from_npz(
         Isotropic simulation voxel spacing in mm (default 0.5 mm).
     pad_mm : float
         Physical padding around initial tumour bounding box in mm to accommodate growth.
+    tm_scale : float
+        Optional multiplicative scaling factor on observed EF5 PET T/M (e.g. scan-time normalization).
     """
     prm = params or RadiobiologyParams()
-    side_key = side.lower().strip()
-    if side_key not in ("rt", "ctrl"):
-        raise ValueError(f"side must be 'rt' or 'ctrl', got {side!r}")
+    raw_side = side.lower().strip()
+    if raw_side in ("l", "lhs"):
+        side_key = "lhs"
+    elif raw_side in ("r", "rhs"):
+        side_key = "rhs"
+    elif raw_side in ("rt", "ctrl"):
+        side_key = raw_side
+    else:
+        raise ValueError(f"side must be 'rt', 'ctrl', 'lhs'/'l', or 'rhs'/'r', got {side!r}")
 
     d = np.load(npz_path, allow_pickle=False)
     mouse_id = str(d["mouse_id"].item())
@@ -134,11 +143,14 @@ def initialize_tumour_from_npz(
     days_post_rt = int(d["days_post_rt"].item())
     ct_avail = bool(d["ct_available"].item())
 
-    has_roi = bool(d["has_rt_roi"].item()) if side_key == "rt" else bool(d["has_ctrl_roi"].item())
+    if side_key in ("lhs", "rhs"):
+        has_roi = bool(d[f"has_{side_key}_roi"].item()) if f"has_{side_key}_roi" in d else False
+    else:
+        has_roi = bool(d["has_rt_roi"].item()) if side_key == "rt" else bool(d["has_ctrl_roi"].item())
     if not has_roi:
         raise ValueError(f"Scan {npz_path.name} does not contain a {side_key} tumour ROI.")
 
-    pet_tm = np.asarray(d["pet_tm"], dtype=np.float64)
+    pet_tm = np.asarray(d["pet_tm"], dtype=np.float64) * float(tm_scale)
     pet_idg = np.asarray(d["pet_idg"], dtype=np.float64)
     mask_pet = np.asarray(d[f"mask_{side_key}_pet"], dtype=bool)
     pet_spacing = np.asarray(d["pet_spacing_mm"], dtype=np.float64)
@@ -247,9 +259,15 @@ def initialize_tumour_from_npz(
     # Newly recruited peripheral angiogenic rim blends tumour baseline with well-perfused host capillaries
     rim_h_vasc = float(np.clip(0.35 * rim_obs + 0.65 * (3.2 * prm.h_vasc_base), 0.22, 0.85))
 
-    treatment = "RT_20Gy" if side_key == "rt" else "Control_0Gy"
-    dose_gy = (20.0 if side_key == "rt" else 0.0) if dose_gy_override is None else float(dose_gy_override)
-    tumour_id = f"{mouse_id}_{'RT' if side_key == 'rt' else 'Ctrl'}"
+    if side_key in ("lhs", "rhs"):
+        treatment = str(d["treatment"].item()) if "treatment" in d else "RT"
+        default_dose = float(d["total_dose_gy"].item()) if "total_dose_gy" in d else 0.0
+        dose_gy = default_dose if dose_gy_override is None else float(dose_gy_override)
+        tumour_id = f"{mouse_id}_{'L' if side_key == 'lhs' else 'R'}"
+    else:
+        treatment = "RT_20Gy" if side_key == "rt" else "Control_0Gy"
+        dose_gy = (20.0 if side_key == "rt" else 0.0) if dose_gy_override is None else float(dose_gy_override)
+        tumour_id = f"{mouse_id}_{'RT' if side_key == 'rt' else 'Ctrl'}"
 
     return VoxelTumourInitialState(
         mouse_id=mouse_id,

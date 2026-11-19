@@ -30,17 +30,24 @@ Python + Docker scientific toolkit for:
 │       ├── voxel_initializer.py        # 3D CT geometry + EF5 PET hypoxia initialiser & vascular field anchor
 │       ├── voxel_rt_model.py           # Sub-Goal 2: 3D O2-PDE + Darcy pressure-velocity continuum RT simulator
 │       ├── run_voxel_study.py          # 10-tumour bilateral longitudinal study + Day -15 early-growth check
-│       └── generate_visual_report.py   # Generates 1D & 3D visual comparison figures & syncs reports/figures/
+│       ├── generate_visual_report.py   # Generates 1D & 3D visual comparison figures & syncs reports/figures/
+│       ├── run_study2_validation.py    # Stages 1 & 2: Blind 80-tumour 1D/3D validation, 4d shield gap, & pre-RT growth
+│       ├── sensitivity_identifiability.py # Stage 3: Sobol global sensitivity, Fisher Information, & profile likelihood
+│       ├── hierarchical_bayesian.py    # Stage 4: Hierarchical Bayesian MCMC, 8-fold LORO CV, & vascular phenotypes
+│       └── generate_study2_report.py   # Generates 7 multi-panel figures & Study 2 validation technical report
 ├── tests/
-│   └── test_modeling.py                # Automated physics, Byrne analytical, conservation & regression tests (8/8)
+│   ├── test_modeling.py                # Automated physics, Byrne analytical, conservation & regression tests (8/8)
+│   └── test_study2_validation.py       # Automated tests for Study 2 4-stage validation, 3D bundles, & random effects (4/4)
 ├── results/
 │   ├── first_ef5_rt_study/             # Reconciled CSV tables (calipers, imaging stats, ID map, timeline, audit)
 │   ├── second_ef5_rt_study/            # Second EF5 RT Study (40-mouse PLOS ONE) CSV tables & forensic audit
-│   └── ef5_rt_model/                   # Tabular 1D & 3D simulation vs real-data validation summaries
+│   ├── ef5_rt_model/                   # Tabular 1D & 3D simulation vs real-data validation summaries
+│   └── study2_validation/              # Tabular Stage 1-4 metrics, Sobol indices, FIM, MCMC posteriors, & LORO CV
 ├── outputs/
 │   ├── first_ef5_rt_study/             # Tracked longitudinal montages, per-scan QC PNGs, & CSV tables
 │   ├── second_ef5_rt_study/            # Tracked 10 bed overviews, 39 per-mouse QC PNGs, & CSV tables
 │   ├── ef5_rt_model/                   # Tracked 1D/3D figures & visual comparison report (NIfTIs excluded)
+│   ├── study2_validation/              # Tracked 7 validation figures & 4-stage technical report w/ layperson appendix
 │   └── prelim_work/                    # Local Set 1 & Set 2 exploratory slice outputs (gitignored)
 ├── notebooks/
 │   ├── explore_set1.ipynb              # Interactive 3-plane slice explorer for Set 1
@@ -91,6 +98,9 @@ docker compose run --rm ef5 python -m src.modeling.run_voxel_study
 
 # Regenerate the 1D & 3D visual comparison report figures (synced to outputs/ef5_rt_model/reports/figures/)
 docker compose run --rm ef5 python -m src.modeling.generate_visual_report
+
+# Second EF5 RT Study (80-tumour PLOS ONE cohort): run all 4 validation stages & generate technical report
+docker compose run --rm ef5 python -m src.modeling.generate_study2_report
 ```
 
 ---

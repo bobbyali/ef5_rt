@@ -26,6 +26,7 @@ outputs/second_ef5_rt_study/*
 outputs/second_ef5_rt_study/cropped_mice/**
 !outputs/second_ef5_rt_study/cropped_mice/**/
 !outputs/second_ef5_rt_study/cropped_mice/**/*.png
+!outputs/study2_validation/
 
 # Defensive exclusions for large binary imaging / voxel / raw scanner files
 *.dcm

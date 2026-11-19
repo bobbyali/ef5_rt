@@ -1,0 +1,145 @@
+readout,parameter,symbol,category,default_val,low_bound,high_bound,S1_first_order,ST_total_order,interaction_ST_minus_S1,ST_normalized_share
+Control_0Gy_V_d30,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.3464,0.3827,0.0362,0.3718
+Control_0Gy_V_d30,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.6219,0.6467,0.0248,0.6282
+Control_0Gy_V_d30,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0,0.0,0.0
+Control_0Gy_V_d30,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0,0.0,0.0
+SRT_1x10Gy_Early_V_d13,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.0705,0.0705,0.0642
+SRT_1x10Gy_Early_V_d13,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0,0.0439,0.0439,0.04
+SRT_1x10Gy_Early_V_d13,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.427,0.5387,0.1117,0.4903
+SRT_1x10Gy_Early_V_d13,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.2563,0.3356,0.0793,0.3054
+SRT_1x10Gy_Early_V_d13,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0238,0.0238,0.0216
+SRT_1x10Gy_Early_V_d13,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0168,0.0168,0.0153
+SRT_1x10Gy_Early_V_d13,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.0,0.0382,0.0382,0.0348
+SRT_1x10Gy_Early_V_d13,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0038,0.0038,0.0035
+SRT_1x10Gy_Early_V_d13,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.019,0.019,0.0173
+SRT_1x10Gy_Early_V_d13,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0076,0.0076,0.007
+SRT_1x10Gy_Early_V_d13,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0002,0.0002,0.0002
+SRT_1x10Gy_Early_V_d13,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0006,0.0006,0.0005
+SRT_1x10Gy_V_d30,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.043,0.043,0.0387
+SRT_1x10Gy_V_d30,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0,0.0247,0.0247,0.0223
+SRT_1x10Gy_V_d30,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.3608,0.517,0.1562,0.4656
+SRT_1x10Gy_V_d30,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.3617,0.4677,0.106,0.4212
+SRT_1x10Gy_V_d30,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0152,0.0152,0.0137
+SRT_1x10Gy_V_d30,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0081,0.0081,0.0073
+SRT_1x10Gy_V_d30,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.0,0.0138,0.0138,0.0124
+SRT_1x10Gy_V_d30,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0009,0.0009,0.0008
+SRT_1x10Gy_V_d30,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.008,0.008,0.0072
+SRT_1x10Gy_V_d30,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0114,0.0114,0.0103
+SRT_1x10Gy_V_d30,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0002,0.0002,0.0002
+SRT_1x10Gy_V_d30,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0004,0.0004,0.0003
+SRT_1x10Gy_Hypoxic_Gap_d30,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0865,0.0865,0.0,0.0839
+SRT_1x10Gy_Hypoxic_Gap_d30,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.2871,0.2871,0.0,0.2785
+SRT_1x10Gy_Hypoxic_Gap_d30,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.2068,0.2068,0.0,0.2006
+SRT_1x10Gy_Hypoxic_Gap_d30,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.1804,0.2655,0.0851,0.2576
+SRT_1x10Gy_Hypoxic_Gap_d30,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0358,0.0358,0.0,0.0347
+SRT_1x10Gy_Hypoxic_Gap_d30,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0248,0.0248,0.0,0.0241
+SRT_1x10Gy_Hypoxic_Gap_d30,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.0448,0.0448,0.0,0.0435
+SRT_1x10Gy_Hypoxic_Gap_d30,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0025,0.0025,0.0,0.0025
+SRT_1x10Gy_Hypoxic_Gap_d30,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0231,0.0231,0.0,0.0225
+SRT_1x10Gy_Hypoxic_Gap_d30,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0509,0.0509,0.0,0.0494
+SRT_1x10Gy_Hypoxic_Gap_d30,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0001,0.0001,0.0,0.0001
+SRT_1x10Gy_Hypoxic_Gap_d30,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0028,0.0028,0.0,0.0027
+SRT_1x20Gy_V_d30,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.0607,0.0607,0.0504
+SRT_1x20Gy_V_d30,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0499,0.1116,0.0617,0.0926
+SRT_1x20Gy_V_d30,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.1679,0.3454,0.1775,0.2866
+SRT_1x20Gy_V_d30,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.1003,0.1912,0.0909,0.1587
+SRT_1x20Gy_V_d30,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0387,0.0387,0.0322
+SRT_1x20Gy_V_d30,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0424,0.0424,0.0352
+SRT_1x20Gy_V_d30,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.1449,0.216,0.0711,0.1792
+SRT_1x20Gy_V_d30,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0118,0.0118,0.0098
+SRT_1x20Gy_V_d30,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.0552,0.0552,0.0458
+SRT_1x20Gy_V_d30,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0049,0.0923,0.0873,0.0766
+SRT_1x20Gy_V_d30,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0337,0.0337,0.0279
+SRT_1x20Gy_V_d30,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0059,0.0059,0.0049
+SRT_1x40Gy_V_d30,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.0011,0.0011,0.0009
+SRT_1x40Gy_V_d30,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0,0.0021,0.0021,0.0017
+SRT_1x40Gy_V_d30,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.0,0.0151,0.0151,0.0122
+SRT_1x40Gy_V_d30,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.0,0.0074,0.0074,0.006
+SRT_1x40Gy_V_d30,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0009,0.0009,0.0008
+SRT_1x40Gy_V_d30,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0009,0.0009,0.0008
+SRT_1x40Gy_V_d30,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.7507,0.8675,0.1168,0.703
+SRT_1x40Gy_V_d30,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0375,0.0375,0.0304
+SRT_1x40Gy_V_d30,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.1417,0.1417,0.1148
+SRT_1x40Gy_V_d30,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0001,0.0001,0.0001
+SRT_1x40Gy_V_d30,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.1577,0.1577,0.1278
+SRT_1x40Gy_V_d30,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0018,0.0018,0.0015
+SRT_1x40Gy_Fibrotic_Floor_d56,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.0419,0.0419,0.0333
+SRT_1x40Gy_Fibrotic_Floor_d56,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.1659,0.2139,0.048,0.1697
+SRT_1x40Gy_Fibrotic_Floor_d56,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.0,0.1702,0.1702,0.1351
+SRT_1x40Gy_Fibrotic_Floor_d56,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.0,0.0735,0.0735,0.0583
+SRT_1x40Gy_Fibrotic_Floor_d56,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0492,0.0492,0.0,0.039
+SRT_1x40Gy_Fibrotic_Floor_d56,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.069,0.069,0.0548
+SRT_1x40Gy_Fibrotic_Floor_d56,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.3812,0.4515,0.0703,0.3582
+SRT_1x40Gy_Fibrotic_Floor_d56,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0013,0.0154,0.0142,0.0122
+SRT_1x40Gy_Fibrotic_Floor_d56,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.0582,0.0582,0.0462
+SRT_1x40Gy_Fibrotic_Floor_d56,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0006,0.0006,0.0004
+SRT_1x40Gy_Fibrotic_Floor_d56,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0429,0.0987,0.0559,0.0783
+SRT_1x40Gy_Fibrotic_Floor_d56,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0182,0.0182,0.0144
+FRT_4x5Gy_V_d30,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0412,0.1785,0.1373,0.1521
+FRT_4x5Gy_V_d30,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0,0.0457,0.0457,0.0389
+FRT_4x5Gy_V_d30,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.2215,0.3755,0.154,0.32
+FRT_4x5Gy_V_d30,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.2377,0.3328,0.095,0.2836
+FRT_4x5Gy_V_d30,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0314,0.0314,0.0268
+FRT_4x5Gy_V_d30,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0173,0.0173,0.0148
+FRT_4x5Gy_V_d30,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.0476,0.1171,0.0695,0.0998
+FRT_4x5Gy_V_d30,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0086,0.0086,0.0074
+FRT_4x5Gy_V_d30,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.0621,0.0621,0.053
+FRT_4x5Gy_V_d30,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0001,0.0001,0.0001
+FRT_4x5Gy_V_d30,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0,0.0,0.0
+FRT_4x5Gy_V_d30,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0041,0.0041,0.0035
+FRT_4x5Gy_Hypoxic_Gap_d30,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.1695,0.2535,0.084,0.1867
+FRT_4x5Gy_Hypoxic_Gap_d30,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0,0.0225,0.0225,0.0166
+FRT_4x5Gy_Hypoxic_Gap_d30,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.0,0.3968,0.3968,0.2922
+FRT_4x5Gy_Hypoxic_Gap_d30,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.2411,0.4171,0.176,0.3072
+FRT_4x5Gy_Hypoxic_Gap_d30,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0863,0.0863,0.0636
+FRT_4x5Gy_Hypoxic_Gap_d30,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0839,0.0839,0.0618
+FRT_4x5Gy_Hypoxic_Gap_d30,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.0,0.0407,0.0407,0.03
+FRT_4x5Gy_Hypoxic_Gap_d30,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0044,0.0044,0.0032
+FRT_4x5Gy_Hypoxic_Gap_d30,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.0282,0.0282,0.0208
+FRT_4x5Gy_Hypoxic_Gap_d30,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0003,0.0003,0.0002
+FRT_4x5Gy_Hypoxic_Gap_d30,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0,0.0,0.0
+FRT_4x5Gy_Hypoxic_Gap_d30,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0241,0.0241,0.0177
+FRT_4x10Gy_V_d30,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.0273,0.0273,0.0227
+FRT_4x10Gy_V_d30,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0,0.035,0.035,0.0291
+FRT_4x10Gy_V_d30,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.0,0.1042,0.1042,0.0865
+FRT_4x10Gy_V_d30,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.0,0.0636,0.0636,0.0528
+FRT_4x10Gy_V_d30,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0134,0.0134,0.0111
+FRT_4x10Gy_V_d30,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0046,0.0046,0.0038
+FRT_4x10Gy_V_d30,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.4041,0.5843,0.1802,0.4852
+FRT_4x10Gy_V_d30,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0402,0.0402,0.0334
+FRT_4x10Gy_V_d30,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.2076,0.2076,0.1724
+FRT_4x10Gy_V_d30,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0939,0.0939,0.078
+FRT_4x10Gy_V_d30,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0288,0.0288,0.0239
+FRT_4x10Gy_V_d30,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0014,0.0014,0.0012
+FRT_4x10Gy_Late_V_d56,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.2026,0.2026,0.1513
+FRT_4x10Gy_Late_V_d56,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.1052,0.178,0.0728,0.1329
+FRT_4x10Gy_Late_V_d56,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.0,0.1566,0.1566,0.1169
+FRT_4x10Gy_Late_V_d56,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.0,0.1087,0.1087,0.0812
+FRT_4x10Gy_Late_V_d56,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0359,0.0359,0.0,0.0268
+FRT_4x10Gy_Late_V_d56,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0299,0.0299,0.0223
+FRT_4x10Gy_Late_V_d56,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.2647,0.3501,0.0853,0.2614
+FRT_4x10Gy_Late_V_d56,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0141,0.0141,0.0106
+FRT_4x10Gy_Late_V_d56,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.1099,0.1099,0.0821
+FRT_4x10Gy_Late_V_d56,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.0827,0.0827,0.0617
+FRT_4x10Gy_Late_V_d56,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0279,0.0279,0.0208
+FRT_4x10Gy_Late_V_d56,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0427,0.0427,0.0319
+PostRT_Virtual_EF5_TM_d13,alpha,$\alpha$,Radiosensitivity,0.185,0.11,0.27,0.0,0.0842,0.0842,0.0637
+PostRT_Virtual_EF5_TM_d13,beta,$\beta$,Radiosensitivity,0.018,0.008,0.032,0.0,0.1525,0.1525,0.1154
+PostRT_Virtual_EF5_TM_d13,kp_max,"$k_{p,\max}$",Growth & Stress,0.13,0.08,0.195,0.0,0.0637,0.0637,0.0482
+PostRT_Virtual_EF5_TM_d13,v_stress_cm3,$V_{\text{stress}}$,Growth & Stress,0.55,0.3,0.9,0.0,0.0407,0.0407,0.0308
+PostRT_Virtual_EF5_TM_d13,K_oer,$K_{\text{OER}}$,Hypoxia & OER,3.5,1.8,6.0,0.0,0.0471,0.0471,0.0356
+PostRT_Virtual_EF5_TM_d13,oer_max,$m_{\text{OER}}$,Hypoxia & OER,3.0,2.3,3.4,0.0,0.0603,0.0603,0.0456
+PostRT_Virtual_EF5_TM_d13,k_d1_to_d2,$k_{D_1\to D_2}$,Clearance & Fibrosis,0.075,0.04,0.13,0.4328,0.6235,0.1907,0.4719
+PostRT_Virtual_EF5_TM_d13,k_clear_o2,"$k_{\text{cl},\text{O}_2}$",Clearance & Fibrosis,0.052,0.025,0.09,0.0,0.0016,0.0016,0.0012
+PostRT_Virtual_EF5_TM_d13,eta_fibrotic,$\eta_{\text{fib}}$,Clearance & Fibrosis,0.6,0.35,0.82,0.0,0.0139,0.0139,0.0105
+PostRT_Virtual_EF5_TM_d13,vasc_damage_d50,"$D_{50,\text{vasc}}$",Vascular Injury,15.5,11.0,22.0,0.0,0.1549,0.1549,0.1173
+PostRT_Virtual_EF5_TM_d13,high_dose_lysis_boost,$k_{\text{boost}}$,Vascular Injury,0.068,0.025,0.115,0.0,0.0052,0.0052,0.0039
+PostRT_Virtual_EF5_TM_d13,q_d1,$q_{D_1}$,Post-RT Metabolism,0.14,0.05,0.4,0.0,0.0738,0.0738,0.0558
